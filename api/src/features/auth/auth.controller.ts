@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import prisma from "../../utils/db.js";
 import {
   refreshTokenService,
+  sessionService,
   signInService,
   signOutService,
   signUpService,
@@ -20,13 +21,24 @@ export const signIn = async (req: Request, res: Response) => {
   const hashedRefreshToken = hashToken(refreshToken);
 
   logger.info(`Creating session for user ${result.data?.user?.id}`);
-  await prisma.session.create({
+  const session = await prisma.session.create({
     data: {
       userId: result.data?.user?.id as string,
       token: hashedRefreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          emailVerified: true,
+        },
+      },
     },
   });
 
@@ -35,7 +47,16 @@ export const signIn = async (req: Request, res: Response) => {
 
   return res.status(StatusCodes.OK).json({
     message: result.message,
-    data: result.data,
+    data: {
+      accessToken: result.data?.accessToken,
+      session: {
+        id: session.id,
+        expiresAt: session.expiresAt,
+        ipAddress: session.ipAddress,
+        userAgent: session.userAgent,
+      },
+      user: session.user,
+    },
   });
 };
 
@@ -63,5 +84,11 @@ export const refreshToken = async (req: Request, res: Response) => {
 export const signOut = async (req: Request, res: Response) => {
   const result = await signOutService(req.userId as string);
   clearRefreshToken(res);
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const session = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const result = await sessionService(userId);
   return res.status(StatusCodes.OK).json(result);
 };

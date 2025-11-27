@@ -9,4 +9,5 @@ router.post("/sign-in", validateSchema(SignInSchema), authController.signIn);
 router.post("/sign-up", validateSchema(SignUpSchema), authController.signUp);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/sign-out", authenticate, authController.signOut);
+router.get("/session", authenticate, authController.session);
 export default router;

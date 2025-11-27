@@ -133,3 +133,32 @@ export const signOutService = async (userId: string) => {
 
   return apiResponse("Sign out successful", null);
 };
+
+export const sessionService = async (userId: string) => {
+  const session = await prisma.session.findFirst({
+    where: { userId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          emailVerified: true,
+        },
+      },
+    },
+  });
+
+  if (!session) throw new ApiError("Session not found", StatusCodes.NOT_FOUND);
+
+  return apiResponse("Session fetched successfully", {
+    session: {
+      id: session.id,
+      expiresAt: session.expiresAt,
+      ipAddress: session.ipAddress,
+      userAgent: session.userAgent,
+    },
+    user: session.user,
+  });
+};
