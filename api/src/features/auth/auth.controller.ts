@@ -6,6 +6,7 @@ import { generateRefreshToken } from "../../utils/jwt.js";
 import { clearRefreshToken, hashToken, setRefreshToken } from "./auth.utils.js";
 import { logger } from "../../utils/logger.js";
 import { ApiError } from "../../utils/api-error.js";
+import { GOOGLE_SCOPES, googleOAuthClient } from "../../config/google.js";
 
 export const signIn = async (req: Request, res: Response) => {
   const result = await authServices.signInService(
@@ -140,12 +141,23 @@ export const verifyTwoFactor = async (req: Request, res: Response) => {
   return res.status(StatusCodes.OK).json(result);
 };
 
+export const getGoogleAuthUrl = async (req: Request, res: Response) => {
+  const result = await authServices.getGoogleAuthUrlService();
+  return res.status(StatusCodes.OK).json(result);
+};
+
 export const signInWithGoogle = async (req: Request, res: Response) => {
-  const { code } = req.body;
+  const code = req.query.code as string;
+
+  if (!code) {
+    throw new ApiError(
+      "Authorization code is required",
+      StatusCodes.BAD_REQUEST
+    );
+  }
 
   const result = await authServices.signInWithGoogleService(code, req);
 
-  // Store app refresh token in cookie
   setRefreshToken(res, result.refreshToken);
 
   return res.status(StatusCodes.OK).json({

@@ -12,6 +12,8 @@ import { logger } from "../../utils/logger.js";
 import { generateCode } from "../../utils/generate-code.js";
 import { bcryptCompareHashed, bcryptHashed, hashToken } from "./auth.utils.js";
 import { GOOGLE_SCOPES, googleOAuthClient } from "../../config/google.js";
+import { Request } from "express";
+import { OAuth2Client } from "google-auth-library";
 
 export const signInService = async (email: string, password: string) => {
   logger.info(`Signing in user with email ${email}`);
@@ -303,7 +305,18 @@ export const verifyTwoFactorService = async (userId: string, code: string) => {
   return apiResponse("Two factor enabled successfully", null);
 };
 
-export const signInWithGoogleService = async (code: string, req: any) => {
+export const getGoogleAuthUrlService = async () => {
+  const authUrl = googleOAuthClient.generateAuthUrl({
+    access_type: "offline",
+    scope: GOOGLE_SCOPES,
+    prompt: "consent",
+  });
+  return apiResponse("Google authentication URL generated successfully", {
+    url: authUrl,
+  });
+};
+
+export const signInWithGoogleService = async (code: string, req: Request) => {
   // 1. Exchange code for Google tokens
   const { tokens } = await googleOAuthClient.getToken(code);
   googleOAuthClient.setCredentials(tokens);
@@ -323,11 +336,15 @@ export const signInWithGoogleService = async (code: string, req: any) => {
   });
 
   const payload = ticket.getPayload();
-  if (!payload) throw new ApiError("Google payload missing", 400);
+  if (!payload) {
+    throw new ApiError("Google payload missing", StatusCodes.BAD_REQUEST);
+  }
 
   const { email, name, picture, sub } = payload;
 
-  if (!email) throw new ApiError("Google email missing", 400);
+  if (!email) {
+    throw new ApiError("Google email missing", StatusCodes.BAD_REQUEST);
+  }
 
   // 3. Find or create user
   let user = await prisma.user.findUnique({
@@ -345,7 +362,6 @@ export const signInWithGoogleService = async (code: string, req: any) => {
       },
       include: { accounts: true },
     });
-    // logger.info(`Created new Google user ${user.id}`);
   }
 
   // 4. Link Google account
@@ -370,12 +386,11 @@ export const signInWithGoogleService = async (code: string, req: any) => {
   // 5. Issue our OWN refresh token + access token
   const appRefreshToken = generateRefreshToken(user?.id as string);
   const hashedRT = hashToken(appRefreshToken);
-
   const session = await prisma.session.create({
     data: {
       userId: user?.id as string,
       token: hashedRT,
-      expiresAt: new Date(Date.now() + 7 * 864e5),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
     },
@@ -402,4 +417,32 @@ export const signInWithGoogleService = async (code: string, req: any) => {
     googleAccessToken,
     googleRefreshToken,
   };
+};
+
+export const refreshGoogleToken = async (userId: string) => {
+  const account = await prisma.account.findFirst({
+    where: { providerId: "google", userId },
+  });
+
+  if (!account?.refreshToken) return null;
+
+  const client = googleOAuthClient;
+
+  client.setCredentials({
+    refresh_token: account.refreshToken,
+  });
+
+  const { credentials } = await client.refreshAccessToken();
+
+  await prisma.account.update({
+    where: { id: account.id },
+    data: {
+      accessToken: credentials.access_token,
+      accessTokenExpiresAt: credentials.expiry_date
+        ? new Date(credentials.expiry_date)
+        : null,
+    },
+  });
+
+  return credentials.access_token;
 };
