@@ -4,15 +4,11 @@ import {
   DisableTwoFactorSchema,
   EnableTwoFactorSchema,
   SignInSchema,
-  SignInWithGoogleSchema,
   SignUpSchema,
   VerifyTwoFactorSchema,
 } from "./auth.validators.js";
 import { validateSchema } from "../../middlewares/validate.middleware.js";
 import { authenticate } from "../../middlewares/auth.middleware.js";
-import { GOOGLE_SCOPES, googleOAuthClient } from "../../config/google.js";
-import * as authServices from "./auth.services.js";
-import { setRefreshToken } from "./auth.utils.js";
 const router = Router();
 
 router.post("/sign-in", validateSchema(SignInSchema), authController.signIn);
@@ -52,5 +48,11 @@ router.post(
 
 router.get("/google/auth-url", authController.getGoogleAuthUrl);
 router.get("/google/callback", authController.signInWithGoogle);
+
+router.post(
+  "/google/refresh-access-token",
+  authenticate,
+  authController.refreshGoogleAccessToken
+);
 
 export default router;

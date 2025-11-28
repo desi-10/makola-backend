@@ -414,12 +414,10 @@ export const signInWithGoogleService = async (code: string, req: Request) => {
     refreshToken: appRefreshToken,
     session: session as any,
     user: session?.user as any,
-    googleAccessToken,
-    googleRefreshToken,
   };
 };
 
-export const refreshGoogleToken = async (userId: string) => {
+export const refreshGoogleAccessTokenService = async (userId: string) => {
   const account = await prisma.account.findFirst({
     where: { providerId: "google", userId },
   });

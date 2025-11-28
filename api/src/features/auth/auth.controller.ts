@@ -7,6 +7,7 @@ import { clearRefreshToken, hashToken, setRefreshToken } from "./auth.utils.js";
 import { logger } from "../../utils/logger.js";
 import { ApiError } from "../../utils/api-error.js";
 import { GOOGLE_SCOPES, googleOAuthClient } from "../../config/google.js";
+import { env } from "../../utils/env.js";
 
 export const signIn = async (req: Request, res: Response) => {
   const result = await authServices.signInService(
@@ -143,6 +144,7 @@ export const verifyTwoFactor = async (req: Request, res: Response) => {
 
 export const getGoogleAuthUrl = async (req: Request, res: Response) => {
   const result = await authServices.getGoogleAuthUrlService();
+  // return res.redirect(result.data?.url as string);
   return res.status(StatusCodes.OK).json(result);
 };
 
@@ -160,21 +162,14 @@ export const signInWithGoogle = async (req: Request, res: Response) => {
 
   setRefreshToken(res, result.refreshToken);
 
-  return res.status(StatusCodes.OK).json({
-    message: "Google sign in successful",
-    data: {
-      accessToken: result.accessToken,
-      session: {
-        id: result.session.id,
-        expiresAt: result.session.expiresAt,
-        ipAddress: result.session.ipAddress,
-        userAgent: result.session.userAgent,
-      },
-      user: result.user,
-      googleTokens: {
-        accessToken: result.googleAccessToken,
-        refreshToken: result.googleRefreshToken,
-      },
-    },
-  });
+  //redirect to frontend with access token and session id
+  return res.redirect(
+    `${env.FRONTEND_URL}/auth/google/callback?accessToken=${result.accessToken}&sessionId=${result.session.id}&userId=${result.user.id}`
+  );
+};
+
+export const refreshGoogleAccessToken = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const result = await authServices.refreshGoogleAccessTokenService(userId);
+  return res.status(StatusCodes.OK).json(result);
 };
