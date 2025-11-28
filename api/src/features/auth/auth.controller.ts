@@ -1,21 +1,17 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import prisma from "../../utils/db.js";
-import {
-  refreshTokenService,
-  sessionService,
-  signInService,
-  signOutService,
-  signUpService,
-} from "./auth.services.js";
+import * as authServices from "./auth.services.js";
 import { generateRefreshToken } from "../../utils/jwt.js";
-import { clearRefreshToken, setRefreshToken } from "./auth.utils.js";
+import { clearRefreshToken, hashToken, setRefreshToken } from "./auth.utils.js";
 import { logger } from "../../utils/logger.js";
 import { ApiError } from "../../utils/api-error.js";
-import { hashToken } from "../../utils/hash.js";
 
 export const signIn = async (req: Request, res: Response) => {
-  const result = await signInService(req.body.email, req.body.password);
+  const result = await authServices.signInService(
+    req.body.email,
+    req.body.password
+  );
 
   const refreshToken = generateRefreshToken(result.data?.user?.id as string);
   const hashedRefreshToken = hashToken(refreshToken);
@@ -61,7 +57,7 @@ export const signIn = async (req: Request, res: Response) => {
 };
 
 export const signUp = async (req: Request, res: Response) => {
-  const result = await signUpService(req.body);
+  const result = await authServices.signUpService(req.body);
   return res.status(StatusCodes.OK).json(result);
 };
 
@@ -70,7 +66,7 @@ export const refreshToken = async (req: Request, res: Response) => {
   if (!refreshToken)
     throw new ApiError("No refresh token", StatusCodes.UNAUTHORIZED);
 
-  const result = await refreshTokenService(refreshToken);
+  const result = await authServices.refreshTokenService(refreshToken);
 
   // Set new refresh token in cookie
   setRefreshToken(res, result.data?.refreshToken as string);
@@ -82,13 +78,91 @@ export const refreshToken = async (req: Request, res: Response) => {
 };
 
 export const signOut = async (req: Request, res: Response) => {
-  const result = await signOutService(req.userId as string);
+  const refreshToken = req.cookies.refresh_token;
+  const result = await authServices.signOutService(
+    req.userId as string,
+    refreshToken
+  );
   clearRefreshToken(res);
   return res.status(StatusCodes.OK).json(result);
 };
 
-export const session = async (req: Request, res: Response) => {
+export const getSession = async (req: Request, res: Response) => {
   const userId = req.userId as string;
-  const result = await sessionService(userId);
+  const refreshToken = req.cookies.refresh_token;
+  const result = await authServices.getSessionService(userId, refreshToken);
   return res.status(StatusCodes.OK).json(result);
+};
+
+export const getSessions = async (req: Request, res: Response) => {};
+
+export const revokeSessions = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const refreshToken = req.cookies.refresh_token;
+  const result = await authServices.revokeSessionsService(userId);
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const revokeOtherSessions = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const refreshToken = req.cookies.refresh_token;
+  const result = await authServices.revokeOtherSessionsService(
+    userId,
+    refreshToken
+  );
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const enableTwoFactor = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const result = await authServices.enableTwoFactorService(
+    userId,
+    req.body.password
+  );
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const disableTwoFactor = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const result = await authServices.disableTwoFactorService(
+    userId,
+    req.body.password
+  );
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const verifyTwoFactor = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const result = await authServices.verifyTwoFactorService(
+    userId,
+    req.body.code
+  );
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const signInWithGoogle = async (req: Request, res: Response) => {
+  const { code } = req.body;
+
+  const result = await authServices.signInWithGoogleService(code, req);
+
+  // Store app refresh token in cookie
+  setRefreshToken(res, result.refreshToken);
+
+  return res.status(StatusCodes.OK).json({
+    message: "Google sign in successful",
+    data: {
+      accessToken: result.accessToken,
+      session: {
+        id: result.session.id,
+        expiresAt: result.session.expiresAt,
+        ipAddress: result.session.ipAddress,
+        userAgent: result.session.userAgent,
+      },
+      user: result.user,
+      googleTokens: {
+        accessToken: result.googleAccessToken,
+        refreshToken: result.googleRefreshToken,
+      },
+    },
+  });
 };

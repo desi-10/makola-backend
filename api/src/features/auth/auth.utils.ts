@@ -1,4 +1,6 @@
 import { Response } from "express";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export const setRefreshToken = (res: Response, refreshToken: string) => {
   res.cookie("refresh_token", refreshToken, {
@@ -12,4 +14,20 @@ export const setRefreshToken = (res: Response, refreshToken: string) => {
 
 export const clearRefreshToken = (res: Response) => {
   res.clearCookie("refresh_token");
+};
+
+export function hashToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+export const bcryptHashed = async (password: string, salt: number) => {
+  const hashed = await bcrypt.hash(password, salt);
+  return hashed;
+};
+
+export const bcryptCompareHashed = async (
+  password: string,
+  hashedPassword: string
+) => {
+  return await bcrypt.compare(password, hashedPassword);
 };

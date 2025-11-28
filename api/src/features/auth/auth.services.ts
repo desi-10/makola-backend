@@ -9,11 +9,9 @@ import {
 } from "../../utils/jwt.js";
 import { SignUpSchemaType } from "./auth.validators.js";
 import { logger } from "../../utils/logger.js";
-import {
-  bcryptCompareHashed,
-  bcryptHashed,
-  hashToken,
-} from "../../utils/hash.js";
+import { generateCode } from "../../utils/generate-code.js";
+import { bcryptCompareHashed, bcryptHashed, hashToken } from "./auth.utils.js";
+import { GOOGLE_SCOPES, googleOAuthClient } from "../../config/google.js";
 
 export const signInService = async (email: string, password: string) => {
   logger.info(`Signing in user with email ${email}`);
@@ -120,9 +118,9 @@ export const refreshTokenService = async (refreshToken: string) => {
   });
 };
 
-export const signOutService = async (userId: string) => {
+export const signOutService = async (userId: string, refreshToken: string) => {
   const session = await prisma.session.findFirst({
-    where: { userId },
+    where: { userId, token: hashToken(refreshToken) },
   });
 
   if (!session) throw new ApiError("Session not found", StatusCodes.NOT_FOUND);
@@ -134,9 +132,12 @@ export const signOutService = async (userId: string) => {
   return apiResponse("Sign out successful", null);
 };
 
-export const sessionService = async (userId: string) => {
+export const getSessionService = async (
+  userId: string,
+  refreshToken: string
+) => {
   const session = await prisma.session.findFirst({
-    where: { userId },
+    where: { userId, token: hashToken(refreshToken) },
     include: {
       user: {
         select: {
@@ -161,4 +162,244 @@ export const sessionService = async (userId: string) => {
     },
     user: session.user,
   });
+};
+
+export const getSessionsService = async (userId: string) => {
+  const sessions = await prisma.session.findMany({ where: { userId } });
+  if (!sessions) throw new ApiError("No session found", StatusCodes.NOT_FOUND);
+  return apiResponse("sessions fetched successfully", sessions);
+};
+
+export const revokeSessionsService = async (userId: string) => {
+  const sessions = await prisma.session.findMany({
+    where: { userId },
+  });
+
+  if (sessions.length === 0)
+    throw new ApiError("No sessions found", StatusCodes.NOT_FOUND);
+
+  await prisma.session.deleteMany({
+    where: { userId },
+  });
+
+  return apiResponse("Sessions revoked successfully", null);
+};
+
+export const revokeOtherSessionsService = async (
+  userId: string,
+  refreshToken: string
+) => {
+  const session = await prisma.session.findFirst({
+    where: { userId, token: hashToken(refreshToken) },
+  });
+
+  if (!session) throw new ApiError("Session not found", StatusCodes.NOT_FOUND);
+
+  await prisma.session.deleteMany({
+    where: { userId, id: { not: session.id } },
+  });
+
+  return apiResponse("Other sessions revoked successfully", null);
+};
+
+export const enableTwoFactorService = async (
+  userId: string,
+  password: string
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+
+  const isPasswordValid = await bcryptCompareHashed(
+    password,
+    user?.password as string
+  );
+  if (!isPasswordValid)
+    throw new ApiError("Invalid password", StatusCodes.UNPROCESSABLE_ENTITY);
+
+  if (user.isTwoFactorEnabled)
+    throw new ApiError("Two factor already enabled", StatusCodes.CONFLICT);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isTwoFactorEnabled: true },
+  });
+
+  //send two factor code to user
+  const twoFactorCode = generateCode();
+  await prisma.verification.create({
+    data: {
+      identifier: userId,
+      value: hashToken(twoFactorCode),
+      expiresAt: new Date(Date.now() + 3 * 60 * 1000),
+    },
+  });
+
+  //send email to user with two factor code
+  // await sendEmail(user.email, twoFactorCode);
+
+  return apiResponse("Two factor code successfully sent", null);
+};
+
+export const disableTwoFactorService = async (
+  userId: string,
+  password: string
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+
+  if (!user.isTwoFactorEnabled)
+    throw new ApiError("Two factor not enabled", StatusCodes.BAD_REQUEST);
+
+  const isPasswordValid = await bcryptCompareHashed(
+    password,
+    user?.password as string
+  );
+  if (!isPasswordValid)
+    throw new ApiError("Invalid password", StatusCodes.UNPROCESSABLE_ENTITY);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isTwoFactorEnabled: false },
+  });
+
+  return apiResponse("Two factor disabled successfully", null);
+};
+
+export const verifyTwoFactorService = async (userId: string, code: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+
+  if (!user.isTwoFactorEnabled)
+    throw new ApiError("Two factor not enabled", StatusCodes.BAD_REQUEST);
+
+  const verification = await prisma.verification.findFirst({
+    where: { identifier: userId, value: hashToken(code) },
+  });
+
+  if (!verification)
+    throw new ApiError("Invalid code", StatusCodes.UNPROCESSABLE_ENTITY);
+
+  if (verification.expiresAt < new Date())
+    throw new ApiError("Code expired", StatusCodes.UNPROCESSABLE_ENTITY);
+
+  await prisma.verification.delete({
+    where: { id: verification.id },
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isTwoFactorEnabled: true },
+  });
+
+  return apiResponse("Two factor enabled successfully", null);
+};
+
+export const signInWithGoogleService = async (code: string, req: any) => {
+  // 1. Exchange code for Google tokens
+  const { tokens } = await googleOAuthClient.getToken(code);
+  googleOAuthClient.setCredentials(tokens);
+
+  const idToken = tokens.id_token;
+  const googleAccessToken = tokens.access_token;
+  const googleRefreshToken = tokens.refresh_token;
+
+  if (!idToken) {
+    throw new ApiError("Invalid Google token", StatusCodes.UNAUTHORIZED);
+  }
+
+  // 2. Decode Google profile
+  const ticket = await googleOAuthClient.verifyIdToken({
+    idToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+  if (!payload) throw new ApiError("Google payload missing", 400);
+
+  const { email, name, picture, sub } = payload;
+
+  if (!email) throw new ApiError("Google email missing", 400);
+
+  // 3. Find or create user
+  let user = await prisma.user.findUnique({
+    where: { email },
+    include: { accounts: true },
+  });
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: name ?? "Google User",
+        image: picture,
+        emailVerified: true,
+      },
+      include: { accounts: true },
+    });
+    // logger.info(`Created new Google user ${user.id}`);
+  }
+
+  // 4. Link Google account
+  let account = await prisma.account.findFirst({
+    where: { providerId: "google", accountId: sub },
+  });
+
+  if (!account) {
+    account = await prisma.account.create({
+      data: {
+        providerId: "google",
+        accountId: sub,
+        userId: user?.id as string,
+        accessToken: googleAccessToken ?? null,
+        refreshToken: googleRefreshToken ?? null,
+        idToken,
+        scope: GOOGLE_SCOPES.join(" "),
+      },
+    });
+  }
+
+  // 5. Issue our OWN refresh token + access token
+  const appRefreshToken = generateRefreshToken(user?.id as string);
+  const hashedRT = hashToken(appRefreshToken);
+
+  const session = await prisma.session.create({
+    data: {
+      userId: user?.id as string,
+      token: hashedRT,
+      expiresAt: new Date(Date.now() + 7 * 864e5),
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          emailVerified: true,
+        },
+      },
+    },
+  });
+
+  const accessToken = generateAccessToken(user?.id as string);
+
+  return {
+    accessToken,
+    refreshToken: appRefreshToken,
+    session: session as any,
+    user: session?.user as any,
+    googleAccessToken,
+    googleRefreshToken,
+  };
 };

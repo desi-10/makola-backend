@@ -1,12 +1,12 @@
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
 import { ApiError } from "../utils/api-error.js"; // adjust path if needed
 import { StatusCodes } from "http-status-codes";
+import { env } from "./env.js";
 
 // 🧩 Environment Variables
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "change-me-access";
-const JWT_REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET || "change-me-refresh";
-const ACCESS_JWT_EXPIRES_IN = (process.env.JWT_ACCESS_EXPIRES_IN ||
+const JWT_ACCESS_SECRET = env.JWT_ACCESS_SECRET || "change-me-access";
+const JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET || "change-me-refresh";
+const ACCESS_JWT_EXPIRES_IN = (env.JWT_ACCESS_EXPIRES_IN ||
   "15m") as SignOptions["expiresIn"];
 const REFRESH_JWT_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN ||
   "7d") as SignOptions["expiresIn"];

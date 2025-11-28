@@ -19,11 +19,11 @@ export function errorHandler(
   //   isOperational: isApiError && err.isOperational,
   // });
 
-  // if (statusCode >= 500) {
-  //   req.log.error({ err, statusCode }, message); // 💥 logs with request context automatically
-  // } else {
-  //   req.log.warn({ err, statusCode }, message); // 💥 logs with request context automatically
-  // }
+  if (statusCode >= 500) {
+    req.log.error({ err, statusCode }, message); // 💥 logs with request context automatically
+  } else {
+    req.log.warn({ err, statusCode }, message); // 💥 logs with request context automatically
+  }
 
   res.status(statusCode).json({
     success: false,
