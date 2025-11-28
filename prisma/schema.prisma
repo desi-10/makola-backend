@@ -15,6 +15,7 @@ model User {
   emailVerified Boolean   @default(false)
   image         String?
   isTwoFactorEnabled Boolean   @default(false)
+  bio             String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
   sessions      Session[]

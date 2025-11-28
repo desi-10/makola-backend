@@ -1,13 +1,13 @@
-import { cloudinaryConfig } from "../config/cloudinary.js";
+import { cloudinary } from "../config/cloudinary.js";
 
 export const uploadToCloudinary = async (
   folder: string,
   buffer: Buffer
 ): Promise<{ secure_url: string; public_id: string }> => {
   return new Promise((resolve, reject) => {
-    cloudinaryConfig.uploader
+    cloudinary.uploader
       .upload_stream(
-        { folder: "rentalord/images/" + folder },
+        { folder: "makola/images/" + folder },
         (
           err: any,
           result: { secure_url: string; public_id: string } | undefined
@@ -22,7 +22,7 @@ export const uploadToCloudinary = async (
 
 export const deleteFromCloudinary = (publicId: string) => {
   return new Promise((resolve, reject) => {
-    cloudinaryConfig.uploader.destroy(publicId, (err: any, result: any) => {
+    cloudinary.uploader.destroy(publicId, (err: any, result: any) => {
       if (err) reject(err);
       else resolve(result);
     });

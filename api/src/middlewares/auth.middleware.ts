@@ -3,7 +3,6 @@ import { verifyAccessToken } from "../utils/jwt.js";
 import { ApiError } from "../utils/api-error.js";
 import { StatusCodes } from "http-status-codes";
 import prisma from "../utils/db.js";
-import { hashToken } from "../utils/hash.js";
 
 export async function authenticate(
   req: Request,
@@ -27,13 +26,10 @@ export async function authenticate(
     });
     if (!user) throw new ApiError("Invalid token", StatusCodes.UNAUTHORIZED);
 
-    // const hashedToken = hashToken(token);
-
     // 4️⃣ Check session record
     const session = await prisma.session.findFirst({
       where: {
         userId: user.id,
-        // token: hashedToken,
       },
     });
 

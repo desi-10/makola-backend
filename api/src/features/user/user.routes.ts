@@ -6,13 +6,14 @@ import { UpdateUserSchema } from "./user.validators.js";
 import { upload } from "../../utils/multer.js";
 const router = Router();
 
-router.get("/me", authenticate, userController.getMe);
-router.patch(
-  "/me",
-  authenticate,
-  upload.single("image"),
-  validateSchema(UpdateUserSchema),
-  userController.updateMe
-);
+router
+  .route("/me")
+  .get(authenticate, userController.getMe)
+  .patch(
+    authenticate,
+    upload.single("image"),
+    validateSchema(UpdateUserSchema),
+    userController.updateMe
+  );
 
 export default router;

@@ -18,6 +18,7 @@ export const getMeService = async (userId: string) => {
       image: true,
       emailVerified: true,
       isTwoFactorEnabled: true,
+      bio: true,
     },
   });
   return apiResponse("User fetched successfully", user);
@@ -47,13 +48,14 @@ export const updateMeService = async (
     data: {
       name: data.name || existingUser.name,
       image: image,
-      email: data.email || existingUser.email,
+      bio: data.bio || existingUser?.bio || undefined,
     },
     select: {
       id: true,
       name: true,
       email: true,
       image: true,
+      bio: true,
       emailVerified: true,
       isTwoFactorEnabled: true,
     },
