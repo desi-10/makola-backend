@@ -7,6 +7,8 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../../utils/cloudinary.js";
+import { UpdatePasswordSchemaType } from "./user.validators.js";
+import { bcryptCompareHashed, bcryptHashed } from "../auth/auth.utils.js";
 
 export const getMeService = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -61,4 +63,42 @@ export const updateMeService = async (
     },
   });
   return apiResponse("User updated successfully", user);
+};
+
+export const updatePasswordService = async (
+  userId: string,
+  data: UpdatePasswordSchemaType
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      password: true,
+    },
+  });
+
+  if (!user) throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+  if (!user.password)
+    throw new ApiError(
+      "User has no password",
+      StatusCodes.UNPROCESSABLE_ENTITY
+    );
+
+  const isOldPasswordValid = await bcryptCompareHashed(
+    data.oldPassword,
+    user.password as string
+  );
+
+  if (!isOldPasswordValid)
+    throw new ApiError("Invalid password", StatusCodes.UNPROCESSABLE_ENTITY);
+  const hashedPassword = await bcryptHashed(data.newPassword, 10);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+
+  await prisma.session.deleteMany({
+    where: { userId },
+  });
+
+  return apiResponse("Password updated successfully", null);
 };
