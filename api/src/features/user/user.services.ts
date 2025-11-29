@@ -8,7 +8,12 @@ import {
   uploadToCloudinary,
 } from "../../utils/cloudinary.js";
 import { UpdatePasswordSchemaType } from "./user.validators.js";
-import { bcryptCompareHashed, bcryptHashed } from "../auth/auth.utils.js";
+import {
+  bcryptCompareHashed,
+  bcryptHashed,
+  hashToken,
+} from "../auth/auth.utils.js";
+import { generateCode } from "../../utils/generate-code.js";
 
 export const getMeService = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -73,6 +78,7 @@ export const updatePasswordService = async (
     where: { id: userId },
     select: {
       password: true,
+      isTwoFactorEnabled: true,
     },
   });
 
@@ -82,6 +88,41 @@ export const updatePasswordService = async (
       "User has no password",
       StatusCodes.UNPROCESSABLE_ENTITY
     );
+
+  if (user.isTwoFactorEnabled && !data.code) {
+    const code = generateCode();
+
+    await prisma.verification.create({
+      data: {
+        expiresAt: new Date(Date.now() + 3 * 60 * 1000),
+        value: hashToken(code),
+        identifier: userId,
+      },
+    });
+
+    //send email
+
+    return apiResponse("Code has been sent to email", {
+      isTwoFactorEnabled: true,
+      code,
+    });
+  }
+
+  if (data.code) {
+    const verification = await prisma.verification.findFirst({
+      where: { identifier: userId, value: hashToken(data.code) },
+    });
+
+    if (!verification)
+      throw new ApiError("Code not found", StatusCodes.NOT_FOUND);
+
+    if (verification.expiresAt < new Date())
+      throw new ApiError("Code expired", StatusCodes.UNPROCESSABLE_ENTITY);
+
+    await prisma.verification.delete({
+      where: { id: verification.id },
+    });
+  }
 
   const isOldPasswordValid = await bcryptCompareHashed(
     data.oldPassword,

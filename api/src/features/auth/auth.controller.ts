@@ -4,21 +4,19 @@ import prisma from "../../utils/db.js";
 import * as authServices from "./auth.services.js";
 import { generateRefreshToken } from "../../utils/jwt.js";
 import { clearRefreshToken, hashToken, setRefreshToken } from "./auth.utils.js";
-import { logger } from "../../utils/logger.js";
 import { ApiError } from "../../utils/api-error.js";
-import { GOOGLE_SCOPES, googleOAuthClient } from "../../config/google.js";
 import { env } from "../../utils/env.js";
 
 export const signIn = async (req: Request, res: Response) => {
   const result = await authServices.signInService(
     req.body.email,
-    req.body.password
+    req.body.password,
+    req.body.code
   );
 
   const refreshToken = generateRefreshToken(result.data?.user?.id as string);
   const hashedRefreshToken = hashToken(refreshToken);
 
-  logger.info(`Creating session for user ${result.data?.user?.id}`);
   const session = await prisma.session.create({
     data: {
       userId: result.data?.user?.id as string,

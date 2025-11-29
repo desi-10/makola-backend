@@ -10,6 +10,7 @@ export const UpdateUserSchema = z.object({
 });
 
 export const UpdatePasswordSchema = z.object({
+  code: z.string().min(6).optional(),
   oldPassword: z
     .string()
     .min(8, { message: "Password must be at least 8 characters long" }),
@@ -19,3 +20,4 @@ export const UpdatePasswordSchema = z.object({
 });
 
 export type UpdateUserSchemaType = z.infer<typeof UpdateUserSchema>;
+export type UpdatePasswordSchemaType = z.infer<typeof UpdatePasswordSchema>;

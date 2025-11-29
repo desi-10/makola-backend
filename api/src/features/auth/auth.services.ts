@@ -7,24 +7,50 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
 } from "../../utils/jwt.js";
-import { SignUpSchemaType } from "./auth.validators.js";
-import { logger } from "../../utils/logger.js";
+import {
+  ForgotPasswordSchemaType,
+  ResetPasswordSchemaType,
+  SignUpSchemaType,
+} from "./auth.validators.js";
 import { generateCode } from "../../utils/generate-code.js";
 import { bcryptCompareHashed, bcryptHashed, hashToken } from "./auth.utils.js";
 import { GOOGLE_SCOPES, googleOAuthClient } from "../../config/google.js";
 import { Request } from "express";
-import { OAuth2Client } from "google-auth-library";
 
-export const signInService = async (email: string, password: string) => {
-  logger.info(`Signing in user with email ${email}`);
+export const signInService = async (
+  email: string,
+  password: string,
+  code?: string
+) => {
   const user = await prisma.user.findUnique({
     where: { email },
   });
 
   if (!user) {
-    logger.error(`User not found with email ${email}`);
     throw new ApiError("User not found", StatusCodes.NOT_FOUND);
   }
+
+  if (user.isTwoFactorEnabled && !code) {
+    //send two factor code to user
+    const twoFactorCode = generateCode();
+    await prisma.verification.create({
+      data: {
+        expiresAt: new Date(Date.now() + 3 * 60 * 1000),
+        identifier: user.id,
+        value: hashToken(twoFactorCode),
+      },
+    });
+    return apiResponse("Two factor code has been sent to your email", {
+      isTwoFactorEnabled: true,
+      code: twoFactorCode,
+    });
+  }
+
+  if (!user.password)
+    throw new ApiError(
+      "User has no password",
+      StatusCodes.UNPROCESSABLE_ENTITY
+    );
 
   const isPasswordValid = await bcryptCompareHashed(
     password,
@@ -32,7 +58,20 @@ export const signInService = async (email: string, password: string) => {
   );
   if (!isPasswordValid)
     throw new ApiError("Invalid password", StatusCodes.UNPROCESSABLE_ENTITY);
-  logger.info(`User ${user.id} signed in successfully`);
+
+  if (user.isTwoFactorEnabled && code) {
+    const verification = await prisma.verification.findFirst({
+      where: { identifier: user.id, value: hashToken(code as string) },
+    });
+    if (!verification)
+      throw new ApiError("Invalid code", StatusCodes.UNPROCESSABLE_ENTITY);
+    if (verification.expiresAt < new Date())
+      throw new ApiError("Code expired", StatusCodes.UNPROCESSABLE_ENTITY);
+
+    await prisma.verification.delete({
+      where: { id: verification.id },
+    });
+  }
 
   const accessToken = generateAccessToken(user.id);
 
@@ -99,8 +138,6 @@ export const refreshTokenService = async (refreshToken: string) => {
   if (!session) {
     throw new ApiError("Session not found", StatusCodes.UNAUTHORIZED);
   }
-
-  logger.info(`Session found for user ${userId}`);
 
   // 4. Rotate refresh token (VERY IMPORTANT SECURITY)
   const newRefreshToken = generateRefreshToken(userId);
@@ -443,4 +480,59 @@ export const refreshGoogleAccessTokenService = async (userId: string) => {
   });
 
   return credentials.access_token;
+};
+
+export const forgotPasswordService = async (data: ForgotPasswordSchemaType) => {
+  const existingUser = await prisma.user.findUnique({
+    where: { email: data.email },
+  });
+
+  if (!existingUser) {
+    throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+  }
+
+  const code = generateCode();
+  await prisma.verification.create({
+    data: {
+      expiresAt: new Date(Date.now() + 3 * 60 * 1000),
+      value: hashToken(code),
+      identifier: data.email,
+    },
+  });
+  //send code to email
+
+  return apiResponse("Code has been sent to your email account", { code });
+};
+
+export const resetPassword = async (data: ResetPasswordSchemaType) => {
+  const existingCode = await prisma.verification.findFirst({
+    where: { value: hashToken(data.code) },
+  });
+
+  if (!existingCode)
+    throw new ApiError("Code not found", StatusCodes.NOT_FOUND);
+
+  if (existingCode.expiresAt < new Date())
+    throw new ApiError("Code expired", StatusCodes.UNPROCESSABLE_ENTITY);
+
+  await prisma.verification.delete({
+    where: { id: existingCode.id },
+  });
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email: existingCode.identifier },
+  });
+
+  if (!existingUser)
+    throw new ApiError("User not found", StatusCodes.NOT_FOUND);
+
+  if (!existingUser.password)
+    throw new ApiError("User has no password", StatusCodes.BAD_REQUEST);
+
+  await prisma.user.update({
+    where: { id: existingUser.id },
+    data: { password: data.newpassword },
+  });
+
+  return apiResponse("Password Updated successfully", null);
 };

@@ -31,5 +31,20 @@ export const VerifyTwoFactorSchema = z.object({
   code: z.string().min(6, { message: "Code must be 6 characters long" }),
 });
 
+export const ForgotPasswordSchema = z.object({
+  email: z.email({ message: "Invalid email address" }),
+});
+
+export const ResetPasswordSchema = z.object({
+  code: z.string().min(6),
+  oldpassword: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters long" }),
+  newpassword: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters long" }),
+});
+
 export type SignInSchemaType = z.infer<typeof SignInSchema>;
 export type SignUpSchemaType = z.infer<typeof SignUpSchema>;
+export type ForgotPasswordSchemaType = z.infer<typeof ForgotPasswordSchema>;
