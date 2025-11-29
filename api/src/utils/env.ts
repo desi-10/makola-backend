@@ -14,6 +14,8 @@ const envs = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
   FRONTEND_URL: process.env.FRONTEND_URL,
+  GMAIL_EMAIL: process.env.GMAIL_EMAIL,
+  GMAIL_PASSWORD: process.env.GMAIL_PASSWORD,
 };
 
 const EnvSchema = z.object({
@@ -30,6 +32,8 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_REDIRECT_URI: z.string(),
   FRONTEND_URL: z.string(),
+  GMAIL_EMAIL: z.string(),
+  GMAIL_PASSWORD: z.string(),
 });
 
 export const env = EnvSchema.parse(envs);
