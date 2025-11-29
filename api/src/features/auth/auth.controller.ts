@@ -94,7 +94,11 @@ export const getSession = async (req: Request, res: Response) => {
   return res.status(StatusCodes.OK).json(result);
 };
 
-export const getSessions = async (req: Request, res: Response) => {};
+export const getSessions = async (req: Request, res: Response) => {
+  const userId = req.userId as string;
+  const result = await authServices.getSessionsService(userId);
+  return res.status(StatusCodes.OK).json(result);
+};
 
 export const revokeSessions = async (req: Request, res: Response) => {
   const userId = req.userId as string;
@@ -169,5 +173,15 @@ export const signInWithGoogle = async (req: Request, res: Response) => {
 export const refreshGoogleAccessToken = async (req: Request, res: Response) => {
   const userId = req.userId as string;
   const result = await authServices.refreshGoogleAccessTokenService(userId);
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  const result = await authServices.forgotPasswordService(req.body);
+  return res.status(StatusCodes.OK).json(result);
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  const result = await authServices.resetPasswordService(req.body);
   return res.status(StatusCodes.OK).json(result);
 };

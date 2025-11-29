@@ -3,6 +3,8 @@ import * as authController from "./auth.controller.js";
 import {
   DisableTwoFactorSchema,
   EnableTwoFactorSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
   SignInSchema,
   SignUpSchema,
   VerifyTwoFactorSchema,
@@ -18,6 +20,17 @@ router.post("/sign-out", authenticate, authController.signOut);
 router.get("/get-session", authenticate, authController.getSession);
 router.get("/get-sessions", authenticate, authController.getSessions);
 router.post("/revoke-sessions", authenticate, authController.revokeSessions);
+router.post(
+  "/forgot-password",
+  validateSchema(ForgotPasswordSchema),
+  authController.forgotPassword
+);
+
+router.post(
+  "/reset-password",
+  validateSchema(ResetPasswordSchema),
+  authController.resetPassword
+);
 
 router.post(
   "/revoke-other-sessions",

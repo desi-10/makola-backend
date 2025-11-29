@@ -37,10 +37,7 @@ export const ForgotPasswordSchema = z.object({
 
 export const ResetPasswordSchema = z.object({
   code: z.string().min(6),
-  oldpassword: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters long" }),
-  newpassword: z
+  password: z
     .string()
     .min(8, { message: "Password must be at least 8 characters long" }),
 });
@@ -48,3 +45,4 @@ export const ResetPasswordSchema = z.object({
 export type SignInSchemaType = z.infer<typeof SignInSchema>;
 export type SignUpSchemaType = z.infer<typeof SignUpSchema>;
 export type ForgotPasswordSchemaType = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordSchemaType = z.infer<typeof ResetPasswordSchema>;

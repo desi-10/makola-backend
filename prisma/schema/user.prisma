@@ -1,29 +1,29 @@
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-}
-
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String
-  password      String?
-  emailVerified Boolean   @default(false)
-  image         String?
-  isTwoFactorEnabled Boolean   @default(false)
-  bio             String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id                   String                 @id @default(cuid())
+  name                 String
+  email                String                 @unique
+  password             String?
+  emailVerified        Boolean                @default(false)
+  image                String?
+  bio                  String?
+  isTwoFactorEnabled   Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
 
-  @@unique([email])
+  sessions             Session[]
+  accounts             Account[]
+  
+  // Organizations the user OWNS (created)
+  organizations        Organization[]
+
+  // Organizations the user BELONGS TO (as a member)
+  organizationMembers  OrganizationMember[]
+  storeMembers         StoreMember[]
+  organizationHistories OrganizationHistory[]
+
   @@map("user")
 }
+
 
 model Session {
   id        String   @id @default(cuid())

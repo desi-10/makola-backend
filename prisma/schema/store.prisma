@@ -1,0 +1,84 @@
+model Store {
+  id             String         @id @default(cuid())
+  name           String
+  description    String?
+  image          String?
+  organizationId String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  members        StoreMember[]
+  roles          StoreRole[]
+  settings       StoreSetting[]
+
+  @@map("store")
+  @@unique([name, organizationId])
+}
+
+model StoreMember {
+  id        String   @id @default(cuid())
+  userId    String
+  storeId   String
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@map("store_members")
+  @@unique([userId, storeId]) // prevent duplicate membership
+}
+
+model StoreRole {
+  id          String                 @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  storeId     String
+
+  store             Store                  @relation(fields: [storeId], references: [id])
+  rolePermissions   StoreRolePermission[]
+
+  @@map("store_roles")
+  @@unique([name, storeId])
+}
+
+model StoreRolePermission {
+  id           String       @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  role       StoreRole  @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@map("store_role_permissions")
+}
+
+model StoreSetting {
+  id        String   @id @default(cuid())
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@map("store_settings")
+}
+
+// Assumed Permission model
+model Permission {
+  id          String                 @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  storeRolePermissions StoreRolePermission[]
+
+  @@map("permissions") 
+}

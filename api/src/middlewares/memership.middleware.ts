@@ -9,20 +9,23 @@ export async function membershipMiddleware(
   next: NextFunction
 ) {
   const userId = (req as any).userId as string;
-  const propertyId = req.params.propertyId as string;
+  const organizationId = req.params.organizationId as string;
 
-  // const member = await prisma.propertyMembership.findUnique({
-  //   where: {
-  //     user_id_property_id: { user_id: userId, property_id: propertyId },
-  //   },
-  // });
+  const membership = await prisma.organizationMember.findUnique({
+    where: {
+      organizationId_userId: {
+        organizationId: organizationId,
+        userId: userId,
+      },
+    },
+  });
 
-  // if (!member)
-  //   throw new ApiError(
-  //     "Not a member of this property",
-  //     StatusCodes.UNAUTHORIZED
-  //   );
+  if (!membership)
+    throw new ApiError(
+      "Not a member of this organization",
+      StatusCodes.UNAUTHORIZED
+    );
 
-  // (req as any).membership = member;
+  (req as any).membership = membership;
   next();
 }

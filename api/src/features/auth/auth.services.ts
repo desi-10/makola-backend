@@ -24,14 +24,25 @@ export const signInService = async (
 ) => {
   const user = await prisma.user.findUnique({
     where: { email },
+    include: {
+      accounts: true,
+      organizations: true,
+      organizationMembers: {
+        include: {
+          organization: true,
+          role: true,
+        },
+      },
+    },
   });
+
+  console.log(user, "user");
 
   if (!user) {
     throw new ApiError("User not found", StatusCodes.NOT_FOUND);
   }
 
   if (user.isTwoFactorEnabled && !code) {
-    //send two factor code to user
     const twoFactorCode = generateCode();
     await prisma.verification.create({
       data: {
@@ -504,7 +515,7 @@ export const forgotPasswordService = async (data: ForgotPasswordSchemaType) => {
   return apiResponse("Code has been sent to your email account", { code });
 };
 
-export const resetPassword = async (data: ResetPasswordSchemaType) => {
+export const resetPasswordService = async (data: ResetPasswordSchemaType) => {
   const existingCode = await prisma.verification.findFirst({
     where: { value: hashToken(data.code) },
   });
@@ -529,10 +540,15 @@ export const resetPassword = async (data: ResetPasswordSchemaType) => {
   if (!existingUser.password)
     throw new ApiError("User has no password", StatusCodes.BAD_REQUEST);
 
+  const hashedPassword = await bcryptHashed(data.password, 10);
   await prisma.user.update({
     where: { id: existingUser.id },
-    data: { password: data.newpassword },
+    data: { password: hashedPassword as string },
   });
 
-  return apiResponse("Password Updated successfully", null);
+  await prisma.session.deleteMany({
+    where: { userId: existingUser.id },
+  });
+
+  return apiResponse("Password reset successfully", null);
 };
