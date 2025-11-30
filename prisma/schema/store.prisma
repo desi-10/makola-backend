@@ -6,29 +6,37 @@ model Store {
   organizationId String
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-
+  deletedAt      DateTime?
+  isActive       Boolean        @default(true)
   organization   Organization   @relation(fields: [organizationId], references: [id])
   members        StoreMember[]
   roles          StoreRole[]
   settings       StoreSetting[]
-
+  history        StoreHistory[]
+  
   @@map("store")
   @@unique([name, organizationId])
+  @@index([id, organizationId])
+  @@index([id, organizationId, isActive])
 }
 
 model StoreMember {
   id        String   @id @default(cuid())
   userId    String
   storeId   String
-  role      String
+  roleId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  deletedAt DateTime?
+  isActive  Boolean  @default(true)
   user  User  @relation(fields: [userId], references: [id])
   store Store @relation(fields: [storeId], references: [id])
-
+  history StoreHistory[]
+  role    StoreRole @relation(fields: [roleId], references: [id])
   @@map("store_members")
   @@unique([userId, storeId]) // prevent duplicate membership
+  @@index([id, userId, storeId])
+  @@index([id, userId, storeId, isActive])
 }
 
 model StoreRole {
@@ -38,12 +46,15 @@ model StoreRole {
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   storeId     String
-
+  deletedAt   DateTime?
+  isActive    Boolean  @default(true)
   store             Store                  @relation(fields: [storeId], references: [id])
   rolePermissions   StoreRolePermission[]
-
+  members         StoreMember[]
   @@map("store_roles")
   @@unique([name, storeId])
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
 }
 
 model StoreRolePermission {
@@ -52,7 +63,8 @@ model StoreRolePermission {
   permissionId String
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-
+  deletedAt    DateTime?
+  isActive     Boolean  @default(true)
   role       StoreRole  @relation(fields: [roleId], references: [id])
   permission Permission @relation(fields: [permissionId], references: [id])
 
@@ -81,4 +93,25 @@ model Permission {
   storeRolePermissions StoreRolePermission[]
 
   @@map("permissions") 
+}
+
+
+model StoreHistory {
+  id        String   @id @default(cuid())
+  storeId  String
+  doerMemberId      String
+  action          String
+  description     String?
+  reason          String?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  meta            Json?
+
+  store    Store @relation(fields: [storeId], references: [id])
+  doerMember            StoreMember         @relation(fields: [doerMemberId], references: [id])
+  
+  @@map("store_history")
 }
