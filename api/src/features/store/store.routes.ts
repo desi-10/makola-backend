@@ -42,6 +42,16 @@ router
 
 router
   .route("/store/:storeId/history")
-  .get(storeMembershipMiddleware, storeControllers.getStoreHistory);
+  .get(
+    validateParams(StoreParamsIdSchema),
+    storeMembershipMiddleware,
+    storeControllers.getStoreHistory
+  );
+
+// router.route("/store/:storeId/history/:historyId").get(
+//   // validateParams(StoreParamsIdSchema),
+//   storeMembershipMiddleware,
+//   storeControllers.getStoreHistoryById
+// );
 
 export default router;

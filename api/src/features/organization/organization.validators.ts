@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 export const CreateOrganizationSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  description: z.string().optional(),
+  name: z.string().min(1, { message: "Name is required" }).trim(),
+  description: z.string().trim().optional(),
 });
 
 export const UpdateOrganizationSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }).optional(),
-  description: z.string().optional(),
+  description: z.string().trim().optional(),
   image: z.string().optional(),
   isActive: z.boolean().optional(),
 });

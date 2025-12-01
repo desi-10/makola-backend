@@ -15,7 +15,7 @@ export const logStoreHistory = async (
       userId,
       storeId,
       action,
-      reason,
+      reason: reason || "",
       ipAddress,
       userAgent,
       meta: meta ? JSON.stringify(meta) : undefined,

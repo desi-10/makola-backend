@@ -1,14 +1,14 @@
 import { z } from "zod";
 
 export const SignInSchema = z.object({
-  email: z.email({ message: "Invalid email address" }),
+  email: z.email({ message: "Invalid email address" }).trim(),
   password: z
     .string()
     .min(8, { message: "Password must be at least 8 characters long" }),
 });
 
 export const SignUpSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
+  name: z.string().min(1, { message: "Name is required" }).trim(),
   email: z.email({ message: "Invalid email address" }),
   password: z
     .string()
@@ -28,15 +28,15 @@ export const DisableTwoFactorSchema = z.object({
 });
 
 export const VerifyTwoFactorSchema = z.object({
-  code: z.string().min(6, { message: "Code must be 6 characters long" }),
+  code: z.string().min(6, { message: "Code must be 6 characters long" }).trim(),
 });
 
 export const ForgotPasswordSchema = z.object({
-  email: z.email({ message: "Invalid email address" }),
+  email: z.email({ message: "Invalid email address" }).trim(),
 });
 
 export const ResetPasswordSchema = z.object({
-  code: z.string().min(6),
+  code: z.string().min(6).trim(),
   password: z
     .string()
     .min(8, { message: "Password must be at least 8 characters long" }),

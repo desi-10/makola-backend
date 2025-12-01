@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-export const CreateStoreSchema = z.object({
+export const CreateCategorySchema = z.object({
   name: z.string().min(1, { message: "Name is required" }).trim(),
+  description: z.string().trim().optional(),
   image: z
     .any()
     .transform((val) => {
@@ -12,11 +13,11 @@ export const CreateStoreSchema = z.object({
     .nullable()
     .optional(),
   isActive: z.coerce.boolean().default(true).optional(),
-  description: z.string().trim().optional(),
 });
 
-export const UpdateStoreSchema = z.object({
+export const UpdateCategorySchema = z.object({
   name: z.string().min(1, { message: "Name is required" }).trim().optional(),
+  description: z.string().trim().optional(),
   image: z
     .any()
     .transform((val) => {
@@ -27,13 +28,14 @@ export const UpdateStoreSchema = z.object({
     .nullable()
     .optional(),
   isActive: z.coerce.boolean().default(true).optional(),
-  description: z.string().trim().optional(),
 });
 
-export const StoreParamsIdSchema = z.object({
-  storeId: z.cuid().min(1, { message: "Invalid store ID" }),
+export const CategoryParamsIdSchema = z.object({
+  categoryId: z.cuid().min(1, { message: "Invalid category ID" }),
 });
 
-export type CreateStoreSchemaType = z.infer<typeof CreateStoreSchema>;
-export type UpdateStoreSchemaType = z.infer<typeof UpdateStoreSchema>;
-export type StoreParamsIdSchemaType = z.infer<typeof StoreParamsIdSchema>;
+export type CreateCategorySchemaType = z.infer<typeof CreateCategorySchema>;
+export type UpdateCategorySchemaType = z.infer<typeof UpdateCategorySchema>;
+export type CategoryParamsIdSchemaType = z.infer<typeof CategoryParamsIdSchema>;
+
+

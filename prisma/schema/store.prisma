@@ -4,6 +4,8 @@ model Store {
   description    String?
   image          String?
   organizationId String
+  categories     Category[]
+  products       Product[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
@@ -18,6 +20,50 @@ model Store {
   @@unique([name, organizationId])
   @@index([id, organizationId])
   @@index([id, organizationId, isActive])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  storeId     String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  store    Store     @relation(fields: [storeId], references: [id])
+  products Product[]
+
+  @@map("categories")
+  @@unique([storeId, name])
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  price       Decimal   @db.Decimal(10, 2)
+  sku         String?
+  storeId     String
+  categoryId  String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  store    Store     @relation(fields: [storeId], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  @@map("products")
+  @@unique([storeId, name])
+  @@unique([storeId, sku])
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
 }
 
 model StoreMember {

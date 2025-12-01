@@ -65,7 +65,7 @@ export const deleteStore = async (req: Request, res: Response) => {
     userId,
     organizationId,
     storeId,
-    req.body.reason,
+    "no reason provided",
     req.ip as string,
     req.headers["user-agent"] as string
   );
