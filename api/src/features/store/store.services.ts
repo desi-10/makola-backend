@@ -7,6 +7,10 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../../utils/cloudinary.js";
+import {
+  CreateStoreSchemaType,
+  UpdateStoreSchemaType,
+} from "./store.validators.js";
 
 export const getStoresService = async (organizationId: string) => {
   const stores = await prisma.store.findMany({
@@ -19,11 +23,13 @@ export const getStoresService = async (organizationId: string) => {
 export const createStoreService = async (
   userId: string,
   organizationId: string,
-  data: any,
+  data: CreateStoreSchemaType,
   file: Express.Multer.File | undefined,
   ipAddress: string,
   userAgent: string
 ) => {
+  console.log(userId, "userId");
+  console.log(organizationId, "organizationId");
   const existingStore = await prisma.store.findFirst({
     where: { name: data.name, organizationId: organizationId, isActive: true },
   });
@@ -38,41 +44,46 @@ export const createStoreService = async (
     image = uploadedImage.secure_url;
   }
 
-  const store = await prisma.store.create({
-    data: {
-      ...data,
-      organizationId: organizationId,
-      image: image,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const store = await tx.store.create({
+      data: {
+        ...data,
+        organizationId: organizationId,
+        image: image,
+      },
+    });
+
+    const role = await tx.storeRole.create({
+      data: {
+        name: "owner",
+        description: "Owner of the store",
+        storeId: store.id,
+      },
+    });
+
+    await tx.storeMember.create({
+      data: {
+        userId: userId,
+        storeId: store.id,
+        roleId: role.id,
+      },
+    });
+
+    await logStoreHistory(
+      tx,
+      userId,
+      store.id,
+      "create",
+      "Store created successfully",
+      ipAddress,
+      userAgent,
+      store
+    );
+
+    return store;
   });
 
-  const role = await prisma.storeRole.create({
-    data: {
-      name: "owner",
-      description: "Owner of the store",
-      storeId: store.id,
-    },
-  });
-
-  await prisma.storeMember.create({
-    data: {
-      userId: userId,
-      storeId: store.id,
-      roleId: role.id,
-    },
-  });
-
-  await logStoreHistory(
-    userId,
-    store.id,
-    "create",
-    "Store created successfully",
-    ipAddress,
-    userAgent,
-    store
-  );
-
-  return apiResponse("Store created successfully", store);
+  return apiResponse("Store created successfully", result);
 };
 
 export const getStoreService = async (
@@ -95,7 +106,7 @@ export const updateStoreService = async (
   userId: string,
   organizationId: string,
   storeId: string,
-  data: any,
+  data: UpdateStoreSchemaType,
   file: Express.Multer.File | undefined,
   ipAddress: string,
   userAgent: string
@@ -108,6 +119,14 @@ export const updateStoreService = async (
     throw new ApiError("Store not found", StatusCodes.NOT_FOUND);
   }
 
+  const existingStoreConflict = await prisma.store.findFirst({
+    where: { name: data.name, organizationId: organizationId, isActive: true },
+  });
+
+  if (existingStoreConflict && existingStoreConflict.id !== storeId) {
+    throw new ApiError("Store name already exists", StatusCodes.CONFLICT);
+  }
+
   let image = existingStore.image;
   if (file) {
     const uploadedImage = await uploadToCloudinary("stores", file.buffer);
@@ -115,27 +134,32 @@ export const updateStoreService = async (
     if (existingStore.image) await deleteFromCloudinary(existingStore.image);
   }
 
-  const store = await prisma.store.update({
-    where: { id: storeId },
-    data: {
-      name: data.name || existingStore.name,
-      description: data.description || existingStore.description,
-      image: image,
-      isActive: data.isActive ?? existingStore.isActive,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const store = await tx.store.update({
+      where: { id: storeId },
+      data: {
+        name: data.name || existingStore.name,
+        description: data.description || existingStore.description,
+        image: image,
+        isActive: data.isActive ?? existingStore.isActive,
+      },
+    });
+
+    await logStoreHistory(
+      tx,
+      userId,
+      store.id,
+      "update",
+      "Store updated",
+      ipAddress,
+      userAgent,
+      store
+    );
+
+    return store;
   });
 
-  await logStoreHistory(
-    userId,
-    store.id,
-    "update",
-    "Store updated",
-    ipAddress,
-    userAgent,
-    store
-  );
-
-  return apiResponse("Store updated successfully", store);
+  return apiResponse("Store updated successfully", result);
 };
 
 export const deleteStoreService = async (
@@ -153,20 +177,23 @@ export const deleteStoreService = async (
   if (!existingStore)
     throw new ApiError("Store not found", StatusCodes.NOT_FOUND);
 
-  await prisma.store.update({
-    where: { id: storeId },
-    data: { deletedAt: new Date(), isActive: false },
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.store.update({
+      where: { id: storeId },
+      data: { deletedAt: new Date(), isActive: false },
+    });
 
-  await logStoreHistory(
-    userId,
-    existingStore.id,
-    "delete",
-    reason,
-    ipAddress,
-    userAgent,
-    existingStore
-  );
+    await logStoreHistory(
+      tx,
+      userId,
+      existingStore.id,
+      "delete",
+      reason,
+      ipAddress,
+      userAgent,
+      existingStore
+    );
+  });
 
   return apiResponse("Store deleted successfully", null);
 };

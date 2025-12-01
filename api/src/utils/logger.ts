@@ -1,12 +1,13 @@
 import pino from "pino";
 import pinoHttpModule from "pino-http";
+import { env } from "./env.js";
 
 const pinoHttp = (pinoHttpModule as any).default || pinoHttpModule;
 
 export const logger = pino({
-  level: process.env.NODE_ENV === "development" ? "debug" : "info",
+  level: env.NODE_ENV === "development" ? "debug" : "info",
   transport:
-    process.env.NODE_ENV === "development"
+    env.NODE_ENV === "development"
       ? {
           target: "pino-pretty",
           options: {
@@ -22,5 +23,6 @@ export const logger = pino({
 export const httpLogger = pinoHttp({
   logger,
   quietReqLogger: true,
-  autoLogging: process.env.NODE_ENV !== "production",
+  // autoLogging: env.NODE_ENV !== "production" ,
+  autoLogging: false,
 });

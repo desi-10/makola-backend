@@ -1,43 +1,47 @@
 import { Router } from "express";
 import * as storeControllers from "./store.controllers.js";
-import { authenticate } from "../../middlewares/auth.middleware.js";
 import { validateSchema } from "../../middlewares/validate.middleware.js";
 import { storeMembershipMiddleware } from "./store.middlewares.js";
-import { CreateStoreSchema, UpdateStoreSchema } from "./store.validators.js";
+import {
+  CreateStoreSchema,
+  StoreParamsIdSchema,
+  UpdateStoreSchema,
+} from "./store.validators.js";
+import { upload } from "../../utils/multer.js";
+import { authenticate } from "../../middlewares/auth.middleware.js";
+import { membershipMiddleware } from "../../middlewares/memership.middleware.js";
+import { validateParams } from "../../middlewares/params.middleware.js";
 
 const router = Router({ mergeParams: true });
+router.use(authenticate, membershipMiddleware);
 
 router
   .route("/")
-  .get(authenticate, storeMembershipMiddleware, storeControllers.getStores)
+  .get(storeControllers.getStores)
   .post(
-    authenticate,
-    storeMembershipMiddleware,
+    upload.single("image"),
     validateSchema(CreateStoreSchema),
     storeControllers.createStore
   );
 
 router
-  .route("/:storeId")
-  .get(authenticate, storeMembershipMiddleware, storeControllers.getStore)
-  .patch(
-    authenticate,
+  .route("/store/:storeId")
+  .get(
+    validateParams(StoreParamsIdSchema),
     storeMembershipMiddleware,
+    storeControllers.getStore
+  )
+  .patch(
+    validateParams(StoreParamsIdSchema),
+    storeMembershipMiddleware,
+    upload.single("image"),
     validateSchema(UpdateStoreSchema),
     storeControllers.updateStore
   )
-  .delete(
-    authenticate,
-    storeMembershipMiddleware,
-    storeControllers.deleteStore
-  );
+  .delete(storeMembershipMiddleware, storeControllers.deleteStore);
 
 router
-  .route("/:storeId/history")
-  .get(
-    authenticate,
-    storeMembershipMiddleware,
-    storeControllers.getStoreHistory
-  );
+  .route("/store/:storeId/history")
+  .get(storeMembershipMiddleware, storeControllers.getStoreHistory);
 
 export default router;

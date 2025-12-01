@@ -20,6 +20,7 @@ model User {
   organizationMembers  OrganizationMember[]
   storeMembers         StoreMember[]
   organizationHistories OrganizationHistory[]
+  storeHistories       StoreHistory[]
 
   @@map("user")
 }

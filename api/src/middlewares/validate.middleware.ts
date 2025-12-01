@@ -6,7 +6,6 @@ import { StatusCodes } from "http-status-codes";
 export const validateSchema =
   (schema: ZodSchema) => (req: Request, _: Response, next: NextFunction) => {
     const parsed = schema.safeParse(req.body);
-
     if (!parsed.success) {
       const formattedErrors = parsed.error.flatten();
 

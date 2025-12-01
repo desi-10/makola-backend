@@ -26,6 +26,6 @@ export async function membershipMiddleware(
       StatusCodes.UNAUTHORIZED
     );
 
-  (req as any).membership = membership;
+  (req as any).organizationMembership = membership;
   next();
 }

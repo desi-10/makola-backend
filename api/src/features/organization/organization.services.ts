@@ -118,6 +118,14 @@ export const getOrganizationService = async (
       isActive: true,
       createdAt: true,
       updatedAt: true,
+      stores: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          image: true,
+        },
+      },
     },
   });
 

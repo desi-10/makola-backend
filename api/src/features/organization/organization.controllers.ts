@@ -3,7 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import * as organizationServices from "./organization.services.js";
 
 export const createOrganization = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await organizationServices.createOrganizationService(
     userId,
     req.body,
@@ -14,13 +14,13 @@ export const createOrganization = async (req: Request, res: Response) => {
 };
 
 export const getOrganizations = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await organizationServices.getOrganizationsService(userId);
   return res.status(StatusCodes.OK).json(result);
 };
 
 export const getOrganization = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const organizationId = req.params.organizationId;
   const result = await organizationServices.getOrganizationService(
     userId,
@@ -30,7 +30,7 @@ export const getOrganization = async (req: Request, res: Response) => {
 };
 
 export const updateOrganization = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const organizationId = req.params.organizationId;
   const result = await organizationServices.updateOrganizationService(
     userId,
@@ -44,7 +44,7 @@ export const updateOrganization = async (req: Request, res: Response) => {
 };
 
 export const deleteOrganization = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const organizationId = req.params.organizationId;
   const result = await organizationServices.deleteOrganizationService(
     userId,
@@ -56,7 +56,7 @@ export const deleteOrganization = async (req: Request, res: Response) => {
 };
 
 export const getActiveOrganizations = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await organizationServices.getActiveOrganizationsService(
     userId
   );
@@ -85,7 +85,7 @@ export const getOrganizationHistoryById = async (
 };
 
 export const getOrganizationMembers = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await organizationServices.getOrganizationMembersService(
     userId
   );

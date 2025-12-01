@@ -31,7 +31,6 @@ model StoreMember {
   isActive  Boolean  @default(true)
   user  User  @relation(fields: [userId], references: [id])
   store Store @relation(fields: [storeId], references: [id])
-  history StoreHistory[]
   role    StoreRole @relation(fields: [roleId], references: [id])
   @@map("store_members")
   @@unique([userId, storeId]) // prevent duplicate membership
@@ -99,7 +98,7 @@ model Permission {
 model StoreHistory {
   id        String   @id @default(cuid())
   storeId  String
-  doerMemberId      String
+  userId      String
   action          String
   description     String?
   reason          String?
@@ -111,7 +110,6 @@ model StoreHistory {
   meta            Json?
 
   store    Store @relation(fields: [storeId], references: [id])
-  doerMember            StoreMember         @relation(fields: [doerMemberId], references: [id])
-  
+  user     User  @relation(fields: [userId], references: [id])
   @@map("store_history")
 }

@@ -3,14 +3,16 @@ import { StatusCodes } from "http-status-codes";
 import * as storeServices from "./store.services.js";
 
 export const getStores = async (req: Request, res: Response) => {
-  const organizationId = req.organizationId as string;
+  const organizationId = (req as any).organizationMembership
+    ?.organizationId as string;
   const result = await storeServices.getStoresService(organizationId);
   return res.status(StatusCodes.OK).json(result);
 };
 
 export const createStore = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
-  const organizationId = req.organizationId as string;
+  const userId = (req as any).userId as string;
+  const organizationId = (req as any).organizationMembership
+    ?.organizationId as string;
 
   const result = await storeServices.createStoreService(
     userId,
@@ -25,8 +27,9 @@ export const createStore = async (req: Request, res: Response) => {
 };
 
 export const getStore = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
-  const organizationId = req.organizationId as string;
+  const userId = (req as any).userId as string;
+  const organizationId = (req as any).organizationMembership
+    ?.organizationId as string;
   const storeId = req.params.storeId;
   const result = await storeServices.getStoreService(
     userId,
@@ -37,9 +40,10 @@ export const getStore = async (req: Request, res: Response) => {
 };
 
 export const updateStore = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const storeId = req.params.storeId;
-  const organizationId = req.organizationId as string;
+  const organizationId = (req as any).organizationMembership
+    ?.organizationId as string;
   const result = await storeServices.updateStoreService(
     userId,
     organizationId,
@@ -53,8 +57,9 @@ export const updateStore = async (req: Request, res: Response) => {
 };
 
 export const deleteStore = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
-  const organizationId = req.organizationId as string;
+  const userId = (req as any).userId as string;
+  const organizationId = (req as any).organizationMembership
+    ?.organizationId as string;
   const storeId = req.params.storeId;
   const result = await storeServices.deleteStoreService(
     userId,
@@ -68,8 +73,9 @@ export const deleteStore = async (req: Request, res: Response) => {
 };
 
 export const getStoreHistory = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
-  const organizationId = req.organizationId as string;
+  const userId = (req as any).userId as string;
+  const organizationId = (req as any).organizationMembership
+    ?.organizationId as string;
   const storeId = req.params.storeId;
   const result = await storeServices.getStoreHistoryService(
     userId,
