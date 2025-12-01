@@ -15,6 +15,18 @@ model Store {
   roles          StoreRole[]
   settings       StoreSetting[]
   history        StoreHistory[]
+  inventory      Inventory[] @relation("StoreInventory")
+  orders         Order[]
+  payments       Payment[]
+  invoices       Invoice[]
+  discounts      Discount[]
+  coupons        Coupon[]
+  campaigns      Campaign[]
+  flashSales     FlashSale[]
+  newsletters    Newsletter[]
+  newsletterSubscribers NewsletterSubscriber[]
+  expenses       Expense[]
+  invites        Invite[]
   
   @@map("store")
   @@unique([name, organizationId])
@@ -77,6 +89,8 @@ model Product {
   store    Store     @relation(fields: [storeId], references: [id])
   category Category? @relation(fields: [categoryId], references: [id])
   history ProductHistory[]
+  inventory Inventory[] @relation("ProductInventory")
+  orderItems OrderItem[]
   @@map("products")
   @@unique([storeId, name])
   @@unique([storeId, sku])

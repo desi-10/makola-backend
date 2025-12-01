@@ -12,6 +12,7 @@ router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/organizations", organizationRoutes);
 router.use("/organizations/:organizationId/stores", storeRoutes);
+
 router.use(
   "/organizations/:organizationId/stores/:storeId/categories",
   categoryRoutes

@@ -15,6 +15,7 @@ model Organization {
   members     OrganizationMember[]
   roles       OrganizationRole[]
   history     OrganizationHistory[]
+  invites     Invite[]
 
   @@map("organization")
   @@unique([name, userId])

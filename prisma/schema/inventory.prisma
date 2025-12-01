@@ -1,0 +1,45 @@
+model Inventory {
+  id        String   @id @default(cuid())
+  productId String
+  storeId   String
+  quantity  Int      @default(0)
+  reserved  Int      @default(0) // Quantity reserved for pending orders
+  lowStockThreshold Int? // Alert when stock falls below this
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  product Product @relation("ProductInventory", fields: [productId], references: [id])
+  store   Store   @relation("StoreInventory", fields: [storeId], references: [id])
+  history InventoryHistory[]
+
+  @@map("inventory")
+  @@unique([productId, storeId])
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
+}
+
+model InventoryHistory {
+  id         String   @id @default(cuid())
+  inventoryId String
+  userId     String
+  action     String   // "adjust", "reserve", "release", "sale", "return"
+  quantity   Int
+  previousQuantity Int
+  newQuantity Int
+  reason     String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+  meta       Json?
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("inventory_history")
+  @@index([inventoryId, createdAt])
+}
+

@@ -1,0 +1,59 @@
+model FlashSale {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  storeId       String
+  discountType  DiscountType
+  discountValue Decimal        @db.Decimal(10, 2)
+  productIds    String[] // Products included in flash sale
+  startTime     DateTime
+  endTime       DateTime
+  maxQuantity   Int? // Maximum quantity per customer
+  totalQuantity Int? // Total quantity available
+  soldQuantity  Int            @default(0)
+  status        FlashSaleStatus @default(SCHEDULED)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  store   Store         @relation(fields: [storeId], references: [id])
+  orders  Order[]
+  history FlashSaleHistory[]
+
+  @@map("flash_sales")
+  @@unique([name, storeId])
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
+  @@index([startTime, endTime])
+  @@index([status, storeId])
+}
+
+enum FlashSaleStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+model FlashSaleHistory {
+  id        String        @id @default(cuid())
+  flashSaleId String
+  userId    String
+  action    String
+  status    FlashSaleStatus?
+  reason    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+  meta      Json?
+
+  flashSale FlashSale @relation(fields: [flashSaleId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("flash_sale_history")
+  @@index([flashSaleId, createdAt])
+}
+

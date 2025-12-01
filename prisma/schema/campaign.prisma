@@ -1,0 +1,78 @@
+model Campaign {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  storeId       String
+  type          CampaignType
+  status        CampaignStatus @default(DRAFT)
+  startDate     DateTime
+  endDate       DateTime
+  budget        Decimal?       @db.Decimal(10, 2)
+  spent         Decimal        @default(0) @db.Decimal(10, 2)
+  targetAudience Json? // Target audience criteria
+  channels      CampaignChannel[] // Marketing channels
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  store   Store          @relation(fields: [storeId], references: [id])
+  history CampaignHistory[]
+
+  @@map("campaigns")
+  @@unique([name, storeId])
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
+  @@index([startDate, endDate])
+  @@index([status, storeId])
+}
+
+enum CampaignType {
+  PRODUCT_LAUNCH
+  SEASONAL_SALE
+  BRAND_AWARENESS
+  CUSTOMER_RETENTION
+  CLEARANCE
+  OTHER
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignChannel {
+  EMAIL
+  SMS
+  SOCIAL_MEDIA
+  PUSH_NOTIFICATION
+  IN_STORE
+  WEBSITE
+  OTHER
+}
+
+model CampaignHistory {
+  id        String         @id @default(cuid())
+  campaignId String
+  userId    String
+  action    String
+  status    CampaignStatus?
+  reason    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+  meta      Json?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@map("campaign_history")
+  @@index([campaignId, createdAt])
+}
+

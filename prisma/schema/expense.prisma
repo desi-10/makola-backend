@@ -1,0 +1,71 @@
+model Expense {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  storeId       String
+  category      ExpenseCategory
+  amount        Decimal       @db.Decimal(10, 2)
+  date          DateTime
+  receiptUrl    String? // Receipt image URL
+  paidBy        String? // User ID who paid
+  approvedBy    String? // User ID who approved
+  status        ExpenseStatus  @default(PENDING)
+  tags          String[] // For categorization
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  store   Store         @relation(fields: [storeId], references: [id])
+  history ExpenseHistory[]
+
+  @@map("expenses")
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
+  @@index([category, storeId])
+  @@index([date, storeId])
+  @@index([status, storeId])
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  SALARIES
+  MARKETING
+  INVENTORY
+  EQUIPMENT
+  MAINTENANCE
+  TRANSPORTATION
+  INSURANCE
+  TAXES
+  OTHER
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model ExpenseHistory {
+  id        String        @id @default(cuid())
+  expenseId String
+  userId    String
+  action    String
+  status    ExpenseStatus?
+  reason    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+  meta      Json?
+
+  expense Expense @relation(fields: [expenseId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("expense_history")
+  @@index([expenseId, createdAt])
+}
+

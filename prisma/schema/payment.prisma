@@ -1,0 +1,67 @@
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String
+  storeId       String
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String? // External payment gateway transaction ID
+  reference     String? // Payment reference number
+  metadata      Json? // Additional payment data
+  paidAt        DateTime?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  order Order @relation(fields: [orderId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
+  history PaymentHistory[]
+
+  @@map("payments")
+  @@index([id, storeId])
+  @@index([orderId])
+  @@index([status, storeId])
+  @@index([transactionId])
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  MOBILE_MONEY
+  PAYPAL
+  STRIPE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+model PaymentHistory {
+  id            String        @id @default(cuid())
+  paymentId     String
+  userId        String
+  action        String
+  status        PaymentStatus?
+  reason        String?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+  meta          Json?
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("payment_history")
+  @@index([paymentId, createdAt])
+}
+

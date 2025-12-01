@@ -14,8 +14,6 @@ export const storeMembershipMiddleware = async (
     ?.organizationId as string;
   const storeId = req.params.storeId as string;
 
-  console.log(req.params, "req.params middleware");
-
   const store = await prisma.store.findFirst({
     where: {
       id: storeId,

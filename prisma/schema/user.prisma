@@ -23,6 +23,17 @@ model User {
   storeHistories       StoreHistory[]
   categoryHistories CategoryHistory[]
   productHistories ProductHistory[]
+  inventoryHistories InventoryHistory[]
+  orderHistories OrderHistory[]
+  paymentHistories PaymentHistory[]
+  invoiceHistories InvoiceHistory[]
+  discountHistories DiscountHistory[]
+  couponHistories CouponHistory[]
+  campaignHistories CampaignHistory[]
+  flashSaleHistories FlashSaleHistory[]
+  newsletterHistories NewsletterHistory[]
+  expenseHistories ExpenseHistory[]
+  inviteHistories InviteHistory[]
   @@map("user")
 }
 
