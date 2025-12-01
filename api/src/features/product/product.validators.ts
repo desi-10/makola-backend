@@ -3,9 +3,11 @@ import { z } from "zod";
 export const CreateProductSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }).trim(),
   description: z.string().trim().optional(),
-  price: z.coerce.number().nonnegative({ message: "Price must be >= 0" }),
+  price: z.coerce
+    .number()
+    .nonnegative({ message: "Price must be greater or equal to 0" }),
   sku: z.string().trim().optional(),
-  categoryId: z.string().cuid().optional().nullable(),
+  categoryId: z.cuid().optional().nullable(),
   image: z
     .any()
     .transform((val) => {
@@ -23,10 +25,10 @@ export const UpdateProductSchema = z.object({
   description: z.string().trim().optional(),
   price: z.coerce
     .number()
-    .nonnegative({ message: "Price must be >= 0" })
+    .nonnegative({ message: "Price must be greater or equal to 0" })
     .optional(),
   sku: z.string().trim().optional(),
-  categoryId: z.string().cuid().optional().nullable(),
+  categoryId: z.cuid().optional().nullable(),
   image: z
     .any()
     .transform((val) => {

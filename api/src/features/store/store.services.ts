@@ -93,6 +93,11 @@ export const getStoreService = async (
 ) => {
   const store = await prisma.store.findFirst({
     where: { organizationId: organizationId, id: storeId, isActive: true },
+    include: {
+      members: true,
+      categories: true,
+      products: true,
+    },
   });
 
   if (!store) {

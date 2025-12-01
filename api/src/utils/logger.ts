@@ -22,7 +22,7 @@ export const logger = pino({
 
 export const httpLogger = pinoHttp({
   logger,
-  quietReqLogger: true,
+  quietReqLogger: false,
   // autoLogging: env.NODE_ENV !== "production" ,
   autoLogging: false,
 });

@@ -14,35 +14,28 @@ import { membershipMiddleware } from "../../middlewares/memership.middleware.js"
 
 const router = Router({ mergeParams: true });
 
-router.use(authenticate, membershipMiddleware);
+router.use(authenticate, membershipMiddleware, storeMembershipMiddleware);
 
 router
-  .route("/stores/:storeId/categories")
-  .get(storeMembershipMiddleware, categoryControllers.getCategories)
+  .route("/")
+  .get(categoryControllers.getCategories)
   .post(
-    storeMembershipMiddleware,
     upload.single("image"),
     validateSchema(CreateCategorySchema),
     categoryControllers.createCategory
   );
 
 router
-  .route("/stores/:storeId/categories/:categoryId")
-  .get(
-    validateParams(CategoryParamsIdSchema),
-    storeMembershipMiddleware,
-    categoryControllers.getCategory
-  )
+  .route("/:categoryId")
+  .get(validateParams(CategoryParamsIdSchema), categoryControllers.getCategory)
   .patch(
     validateParams(CategoryParamsIdSchema),
-    storeMembershipMiddleware,
     upload.single("image"),
     validateSchema(UpdateCategorySchema),
     categoryControllers.updateCategory
   )
   .delete(
     validateParams(CategoryParamsIdSchema),
-    storeMembershipMiddleware,
     categoryControllers.deleteCategory
   );
 

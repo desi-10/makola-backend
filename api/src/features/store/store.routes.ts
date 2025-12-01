@@ -13,6 +13,7 @@ import { membershipMiddleware } from "../../middlewares/memership.middleware.js"
 import { validateParams } from "../../middlewares/params.middleware.js";
 
 const router = Router({ mergeParams: true });
+
 router.use(authenticate, membershipMiddleware);
 
 router
@@ -25,7 +26,7 @@ router
   );
 
 router
-  .route("/store/:storeId")
+  .route("/:storeId")
   .get(
     validateParams(StoreParamsIdSchema),
     storeMembershipMiddleware,
@@ -38,20 +39,18 @@ router
     validateSchema(UpdateStoreSchema),
     storeControllers.updateStore
   )
-  .delete(storeMembershipMiddleware, storeControllers.deleteStore);
+  .delete(
+    validateParams(StoreParamsIdSchema),
+    storeMembershipMiddleware,
+    storeControllers.deleteStore
+  );
 
 router
-  .route("/store/:storeId/history")
+  .route("/:storeId/history")
   .get(
     validateParams(StoreParamsIdSchema),
     storeMembershipMiddleware,
     storeControllers.getStoreHistory
   );
-
-// router.route("/store/:storeId/history/:historyId").get(
-//   // validateParams(StoreParamsIdSchema),
-//   storeMembershipMiddleware,
-//   storeControllers.getStoreHistoryById
-// );
 
 export default router;

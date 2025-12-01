@@ -3,14 +3,14 @@ import { StatusCodes } from "http-status-codes";
 import * as categoryServices from "./category.services.js";
 
 export const getCategories = async (req: Request, res: Response) => {
-  const storeId = req.params.storeId as string;
+  const storeId = (req as any).storeId as string;
   const result = await categoryServices.getCategoriesService(storeId);
   return res.status(StatusCodes.OK).json(result);
 };
 
 export const createCategory = async (req: Request, res: Response) => {
   const userId = (req as any).userId as string;
-  const storeId = req.params.storeId as string;
+  const storeId = (req as any).storeId as string;
 
   const result = await categoryServices.createCategoryService(
     userId,
@@ -25,7 +25,7 @@ export const createCategory = async (req: Request, res: Response) => {
 };
 
 export const getCategory = async (req: Request, res: Response) => {
-  const storeId = req.params.storeId as string;
+  const storeId = (req as any).storeId as string;
   const categoryId = req.params.categoryId as string;
 
   const result = await categoryServices.getCategoryService(storeId, categoryId);
@@ -34,7 +34,7 @@ export const getCategory = async (req: Request, res: Response) => {
 
 export const updateCategory = async (req: Request, res: Response) => {
   const userId = (req as any).userId as string;
-  const storeId = req.params.storeId as string;
+  const storeId = (req as any).storeId as string;
   const categoryId = req.params.categoryId as string;
 
   const result = await categoryServices.updateCategoryService(
@@ -52,7 +52,7 @@ export const updateCategory = async (req: Request, res: Response) => {
 
 export const deleteCategory = async (req: Request, res: Response) => {
   const userId = (req as any).userId as string;
-  const storeId = req.params.storeId as string;
+  const storeId = (req as any).storeId as string;
   const categoryId = req.params.categoryId as string;
 
   const result = await categoryServices.deleteCategoryService(
@@ -66,5 +66,3 @@ export const deleteCategory = async (req: Request, res: Response) => {
 
   return res.status(StatusCodes.OK).json(result);
 };
-
-

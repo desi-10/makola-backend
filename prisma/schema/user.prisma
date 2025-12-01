@@ -21,7 +21,8 @@ model User {
   storeMembers         StoreMember[]
   organizationHistories OrganizationHistory[]
   storeHistories       StoreHistory[]
-
+  categoryHistories CategoryHistory[]
+  productHistories ProductHistory[]
   @@map("user")
 }
 

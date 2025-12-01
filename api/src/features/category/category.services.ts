@@ -10,6 +10,7 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../../utils/cloudinary.js";
+import { logCategoryHistory } from "./category.utils.js";
 
 export const getCategoriesService = async (storeId: string) => {
   const categories = await prisma.category.findMany({
@@ -108,17 +109,32 @@ export const updateCategoryService = async (
     }
   }
 
-  const category = await prisma.category.update({
-    where: { id: categoryId },
-    data: {
-      name: data.name || existingCategory.name,
-      description: data.description || existingCategory.description,
-      image,
-      isActive: data.isActive ?? existingCategory.isActive,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedCategory = await tx.category.update({
+      where: { id: categoryId },
+      data: {
+        name: data.name || existingCategory.name,
+        description: data.description || existingCategory.description,
+        image,
+        isActive: data.isActive ?? existingCategory.isActive,
+      },
+    });
+
+    await logCategoryHistory(
+      tx,
+      userId,
+      updatedCategory.id,
+      "update",
+      "Category updated successfully",
+      ipAddress,
+      userAgent,
+      existingCategory
+    );
+
+    return updatedCategory;
   });
 
-  return apiResponse("Category updated successfully", category);
+  return apiResponse("Category updated successfully", result);
 };
 
 export const deleteCategoryService = async (
@@ -137,12 +153,27 @@ export const deleteCategoryService = async (
     throw new ApiError("Category not found", StatusCodes.NOT_FOUND);
   }
 
-  await prisma.category.update({
-    where: { id: categoryId },
-    data: {
-      deletedAt: new Date(),
-      isActive: false,
-    },
+  prisma.$transaction(async (tx) => {
+    const category = await tx.category.update({
+      where: { id: categoryId },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+      },
+    });
+
+    await logCategoryHistory(
+      tx,
+      userId,
+      category.id,
+      "delete",
+      reason,
+      ipAddress,
+      userAgent,
+      existingCategory
+    );
+
+    return category;
   });
 
   return apiResponse("Category deleted successfully", null);

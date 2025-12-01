@@ -36,8 +36,6 @@ export const signInService = async (
     },
   });
 
-  console.log(user, "user");
-
   if (!user) {
     throw new ApiError("User not found", StatusCodes.NOT_FOUND);
   }

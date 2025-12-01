@@ -80,7 +80,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 export const signOut = async (req: Request, res: Response) => {
   const refreshToken = req.cookies.refresh_token;
   const result = await authServices.signOutService(
-    req.userId as string,
+    (req as any).userId as string,
     refreshToken
   );
   clearRefreshToken(res);
@@ -88,27 +88,27 @@ export const signOut = async (req: Request, res: Response) => {
 };
 
 export const getSession = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const refreshToken = req.cookies.refresh_token;
   const result = await authServices.getSessionService(userId, refreshToken);
   return res.status(StatusCodes.OK).json(result);
 };
 
 export const getSessions = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await authServices.getSessionsService(userId);
   return res.status(StatusCodes.OK).json(result);
 };
 
 export const revokeSessions = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const refreshToken = req.cookies.refresh_token;
   const result = await authServices.revokeSessionsService(userId);
   return res.status(StatusCodes.OK).json(result);
 };
 
 export const revokeOtherSessions = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const refreshToken = req.cookies.refresh_token;
   const result = await authServices.revokeOtherSessionsService(
     userId,
@@ -118,7 +118,7 @@ export const revokeOtherSessions = async (req: Request, res: Response) => {
 };
 
 export const enableTwoFactor = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await authServices.enableTwoFactorService(
     userId,
     req.body.password
@@ -127,7 +127,7 @@ export const enableTwoFactor = async (req: Request, res: Response) => {
 };
 
 export const disableTwoFactor = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await authServices.disableTwoFactorService(
     userId,
     req.body.password
@@ -136,7 +136,7 @@ export const disableTwoFactor = async (req: Request, res: Response) => {
 };
 
 export const verifyTwoFactor = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await authServices.verifyTwoFactorService(
     userId,
     req.body.code
@@ -171,7 +171,7 @@ export const signInWithGoogle = async (req: Request, res: Response) => {
 };
 
 export const refreshGoogleAccessToken = async (req: Request, res: Response) => {
-  const userId = req.userId as string;
+  const userId = (req as any).userId as string;
   const result = await authServices.refreshGoogleAccessTokenService(userId);
   return res.status(StatusCodes.OK).json(result);
 };

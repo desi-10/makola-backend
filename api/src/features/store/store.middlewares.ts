@@ -10,8 +10,11 @@ export const storeMembershipMiddleware = async (
   next: NextFunction
 ) => {
   const userId = (req as any).userId as string;
-  const organizationId = (req as any).organizationId as string;
+  const organizationId = (req as any).organizationMembership
+    ?.organizationId as string;
   const storeId = req.params.storeId as string;
+
+  console.log(req.params, "req.params middleware");
 
   const store = await prisma.store.findFirst({
     where: {

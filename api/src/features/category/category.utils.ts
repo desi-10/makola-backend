@@ -12,7 +12,15 @@ export const logCategoryHistory = async (
 ) => {
   // If you later add a CategoryHistory model, wire it up here similar to StoreHistory.
   // Placeholder for future auditing; currently a no-op to keep pattern consistent.
-  return;
+  await tx.categoryHistory.create({
+    data: {
+      userId,
+      categoryId,
+      action,
+      reason,
+      ipAddress,
+      userAgent,
+      meta: meta ? JSON.stringify(meta) : undefined,
+    },
+  });
 };
-
-

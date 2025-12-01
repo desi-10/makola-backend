@@ -89,6 +89,9 @@ export const updateProductService = async (
   ipAddress: string,
   userAgent: string
 ) => {
+  console.log(productId, "productId");
+  console.log(storeId, "storeId");
+
   const existingProduct = await prisma.product.findFirst({
     where: { id: productId, storeId, isActive: true },
   });
@@ -108,6 +111,7 @@ export const updateProductService = async (
     });
 
     if (conflict) {
+      console.log(conflict, "update");
       throw new ApiError("Product already exists", StatusCodes.CONFLICT);
     }
   }
@@ -178,5 +182,3 @@ export const deleteProductService = async (
 
   return apiResponse("Product deleted successfully", null);
 };
-
-
