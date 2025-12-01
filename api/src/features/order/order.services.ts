@@ -10,6 +10,9 @@ import { logOrderHistory } from "./order.utils.js";
 import { generateOrderNumber } from "../../utils/generate-order-number.js";
 import { Prisma } from "@prisma/client";
 
+// =======================================================
+// GET ORDERS
+// =======================================================
 export const getOrdersService = async (storeId: string) => {
   const orders = await prisma.order.findMany({
     where: { storeId, isActive: true },
@@ -24,6 +27,9 @@ export const getOrdersService = async (storeId: string) => {
   return apiResponse("Orders fetched successfully", orders);
 };
 
+// =======================================================
+// GET SINGLE ORDER
+// =======================================================
 export const getOrderService = async (storeId: string, orderId: string) => {
   const order = await prisma.order.findFirst({
     where: { id: orderId, storeId, isActive: true },
@@ -36,13 +42,14 @@ export const getOrderService = async (storeId: string, orderId: string) => {
     },
   });
 
-  if (!order) {
-    throw new ApiError("Order not found", StatusCodes.NOT_FOUND);
-  }
+  if (!order) throw new ApiError("Order not found", StatusCodes.NOT_FOUND);
 
   return apiResponse("Order fetched successfully", order);
 };
 
+// =======================================================
+// CREATE ORDER (OPTIMIZED — NO LOOPS WITH QUERIES)
+// =======================================================
 export const createOrderService = async (
   userId: string,
   storeId: string,
@@ -50,7 +57,9 @@ export const createOrderService = async (
   ipAddress: string,
   userAgent: string
 ) => {
-  // Check for active flashsales
+  // -----------------------------
+  // Fetch active flash sales once
+  // -----------------------------
   const now = new Date();
   const activeFlashSales = await prisma.flashSale.findMany({
     where: {
@@ -62,85 +71,96 @@ export const createOrderService = async (
     },
   });
 
-  // Validate products exist and calculate totals
+  // -----------------------------
+  // Fetch all products at once
+  // -----------------------------
+  const productIds = data.items.map((i) => i.productId);
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds }, storeId, isActive: true },
+  });
+
+  if (products.length !== productIds.length) {
+    const existingIds = new Set(products.map((p) => p.id));
+    const missing = productIds.filter((id) => !existingIds.has(id));
+    throw new ApiError(
+      `Products not found: ${missing.join(", ")}`,
+      StatusCodes.NOT_FOUND
+    );
+  }
+
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  // -----------------------------
+  // Batch compute totals
+  // -----------------------------
   let subtotal = new Prisma.Decimal(0);
   let discountAmount = new Prisma.Decimal(0);
   let appliedFlashSaleId: string | null = null;
 
+  const flashSaleMap = new Map(activeFlashSales.map((fs) => [fs.id, fs]));
+
   for (const item of data.items) {
-    const product = await prisma.product.findFirst({
-      where: { id: item.productId, storeId, isActive: true },
-    });
-
-    if (!product) {
-      throw new ApiError(
-        `Product ${item.productId} not found`,
-        StatusCodes.NOT_FOUND
-      );
-    }
-
-    // Use product price from database (security: don't trust client)
+    const product = productMap.get(item.productId)!;
     const unitPrice = product.price;
-    const itemSubtotal = new Prisma.Decimal(unitPrice).times(item.quantity);
+    const itemSubtotal = unitPrice.mul(item.quantity);
 
-    // Check if product is in any active flashsale
-    let itemDiscount = new Prisma.Decimal(0);
-    let flashSaleForItem = null;
+    subtotal = subtotal.plus(itemSubtotal);
 
-    for (const flashSale of activeFlashSales) {
-      if (flashSale.productIds.includes(item.productId)) {
-        // Check quantity limits
-        if (flashSale.maxQuantity && item.quantity > flashSale.maxQuantity) {
+    // Detect if item has flash sale
+    const flashSale = activeFlashSales.find((fs) =>
+      fs.productIds.includes(item.productId)
+    );
+
+    if (flashSale) {
+      appliedFlashSaleId = flashSale.id;
+
+      // Quantity checks
+      if (flashSale.maxQuantity && item.quantity > flashSale.maxQuantity) {
+        throw new ApiError(
+          `Maximum quantity for flash sale item is ${flashSale.maxQuantity}`,
+          StatusCodes.BAD_REQUEST
+        );
+      }
+
+      if (flashSale.totalQuantity) {
+        const remaining = flashSale.totalQuantity - flashSale.soldQuantity;
+        if (remaining < item.quantity) {
           throw new ApiError(
-            `Maximum quantity for flashsale item is ${flashSale.maxQuantity}`,
+            `Flash sale remaining quantity: ${remaining}`,
             StatusCodes.BAD_REQUEST
           );
         }
-
-        // Check if flashsale has remaining quantity
-        if (flashSale.totalQuantity) {
-          const remaining = flashSale.totalQuantity - flashSale.soldQuantity;
-          if (remaining < item.quantity) {
-            throw new ApiError(
-              `Insufficient flashsale quantity. Only ${remaining} available`,
-              StatusCodes.BAD_REQUEST
-            );
-          }
-        }
-
-        // Calculate flashsale discount based on product price
-        const flashSaleDiscount =
-          flashSale.discountType === "PERCENTAGE"
-            ? itemSubtotal.times(flashSale.discountValue).dividedBy(100)
-            : new Prisma.Decimal(flashSale.discountValue).times(item.quantity);
-
-        itemDiscount = itemDiscount.plus(flashSaleDiscount);
-        appliedFlashSaleId = flashSale.id;
-        flashSaleForItem = flashSale;
-        break; // Apply first matching flashsale
       }
-    }
 
-    subtotal = subtotal.plus(itemSubtotal);
-    discountAmount = discountAmount.plus(itemDiscount);
+      // Compute discount
+      const flashDiscount =
+        flashSale.discountType === "PERCENTAGE"
+          ? itemSubtotal.mul(flashSale.discountValue).div(100)
+          : new Prisma.Decimal(flashSale.discountValue).mul(item.quantity);
+
+      discountAmount = discountAmount.plus(flashDiscount);
+    }
   }
 
-  // Validate and apply coupon if provided
-  let coupon = null;
+  // -----------------------------
+  // Validate coupon
+  // -----------------------------
+  let coupon: any = null;
+
   if (data.couponId) {
     coupon = await prisma.coupon.findFirst({
       where: {
         id: data.couponId,
         storeId,
         isActive: true,
-        startDate: { lte: new Date() },
-        OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+        startDate: { lte: now },
+        OR: [{ endDate: null }, { endDate: { gte: now } }],
       },
     });
 
-    if (!coupon) {
+    if (!coupon)
       throw new ApiError("Invalid or expired coupon", StatusCodes.BAD_REQUEST);
-    }
 
     if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
       throw new ApiError(
@@ -149,24 +169,29 @@ export const createOrderService = async (
       );
     }
 
-    // Calculate coupon discount
     const couponDiscount =
       coupon.type === "PERCENTAGE"
-        ? subtotal.times(coupon.value).dividedBy(100)
+        ? subtotal.mul(coupon.value).div(100)
         : new Prisma.Decimal(coupon.value);
 
     discountAmount = discountAmount.plus(couponDiscount);
   }
 
+  // -----------------------------
+  // Final amounts
+  // -----------------------------
   const taxAmount = new Prisma.Decimal(data.taxAmount || 0);
   const shippingAmount = new Prisma.Decimal(data.shippingAmount || 0);
+
   const finalAmount = subtotal
     .minus(discountAmount)
     .plus(taxAmount)
     .plus(shippingAmount);
 
+  // =======================================================
+  // TRANSACTION START
+  // =======================================================
   const result = await prisma.$transaction(async (tx) => {
-    // Create order
     const order = await tx.order.create({
       data: {
         orderNumber: generateOrderNumber(),
@@ -189,81 +214,81 @@ export const createOrderService = async (
       },
     });
 
-    // Create order items
+    // -----------------------------
+    // Batch inventory fetch
+    // -----------------------------
+    const inventoryRecords = await tx.inventory.findMany({
+      where: {
+        productId: { in: productIds },
+        storeId,
+      },
+    });
+
+    const inventoryMap = new Map(inventoryRecords.map((i) => [i.productId, i]));
+
+    // -----------------------------
+    // Create order items + update inventory
+    // -----------------------------
+    const orderItemCreates = [];
+    const inventoryUpdates = [];
+
     for (const item of data.items) {
-      // Get product to use its price (security: don't trust client)
-      const product = await tx.product.findUnique({
-        where: { id: item.productId },
-      });
-
-      if (!product) {
-        throw new ApiError(
-          `Product ${item.productId} not found`,
-          StatusCodes.NOT_FOUND
-        );
-      }
-
+      const product = productMap.get(item.productId)!;
       const unitPrice = product.price;
-      const itemSubtotal = new Prisma.Decimal(unitPrice).times(item.quantity);
+      const itemSubtotal = unitPrice.mul(item.quantity);
 
-      // Calculate item discount (including flashsale if applicable)
+      // flash sale discount
       let itemDiscount = new Prisma.Decimal(0);
 
-      // Check if this item has flashsale discount
       if (appliedFlashSaleId) {
-        const flashSale = activeFlashSales.find(
-          (fs) => fs.id === appliedFlashSaleId
-        );
-        if (flashSale && flashSale.productIds.includes(item.productId)) {
-          const flashSaleDiscount =
-            flashSale.discountType === "PERCENTAGE"
-              ? itemSubtotal.times(flashSale.discountValue).dividedBy(100)
-              : new Prisma.Decimal(flashSale.discountValue).times(
-                  item.quantity
-                );
-          itemDiscount = itemDiscount.plus(flashSaleDiscount);
+        const fs = flashSaleMap.get(appliedFlashSaleId);
+        if (fs && fs.productIds.includes(item.productId)) {
+          itemDiscount =
+            fs.discountType === "PERCENTAGE"
+              ? itemSubtotal.mul(fs.discountValue).div(100)
+              : new Prisma.Decimal(fs.discountValue).mul(item.quantity);
         }
       }
 
       const itemTotal = itemSubtotal.minus(itemDiscount);
 
-      await tx.orderItem.create({
-        data: {
-          orderId: order.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: unitPrice,
-          discount: itemDiscount,
-          totalPrice: itemTotal,
-        },
-      });
-
-      // Update inventory (reserve quantity)
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          productId_storeId: {
+      orderItemCreates.push(
+        tx.orderItem.create({
+          data: {
+            orderId: order.id,
             productId: item.productId,
-            storeId,
+            quantity: item.quantity,
+            unitPrice,
+            discount: itemDiscount,
+            totalPrice: itemTotal,
           },
-        },
-      });
+        })
+      );
 
-      if (inventory) {
-        if (inventory.quantity - inventory.reserved < item.quantity) {
+      const inv = inventoryMap.get(item.productId);
+      if (inv) {
+        if (inv.quantity - inv.reserved < item.quantity) {
           throw new ApiError(
             `Insufficient inventory for product ${item.productId}`,
             StatusCodes.BAD_REQUEST
           );
         }
 
-        await tx.inventory.update({
-          where: { id: inventory.id },
-          data: { reserved: { increment: item.quantity } },
-        });
+        inventoryUpdates.push(
+          tx.inventory.update({
+            where: { id: inv.id },
+            data: { reserved: { increment: item.quantity } },
+          })
+        );
       }
     }
 
-    // Update coupon usage count
+    await Promise.all(orderItemCreates);
+    await Promise.all(inventoryUpdates);
+
+    // -----------------------------
+    // Update coupon usage
+    // -----------------------------
     if (coupon) {
       await tx.coupon.update({
         where: { id: coupon.id },
@@ -271,19 +296,19 @@ export const createOrderService = async (
       });
     }
 
-    // Update flashsale sold quantity
+    // -----------------------------
+    // Flash sale sold quantity
+    // -----------------------------
     if (appliedFlashSaleId) {
-      const flashSale = activeFlashSales.find(
-        (fs) => fs.id === appliedFlashSaleId
-      );
+      const flashSale = flashSaleMap.get(appliedFlashSaleId);
       if (flashSale) {
-        const totalQuantitySold = data.items
-          .filter((item) => flashSale.productIds.includes(item.productId))
-          .reduce((sum, item) => sum + item.quantity, 0);
+        const totalSold = data.items
+          .filter((i) => flashSale.productIds.includes(i.productId))
+          .reduce((a, b) => a + b.quantity, 0);
 
         await tx.flashSale.update({
           where: { id: appliedFlashSaleId },
-          data: { soldQuantity: { increment: totalQuantitySold } },
+          data: { soldQuantity: { increment: totalSold } },
         });
       }
     }
@@ -303,6 +328,7 @@ export const createOrderService = async (
     return order;
   });
 
+  // Fetch order with items
   const orderWithItems = await prisma.order.findUnique({
     where: { id: result.id },
     include: {
@@ -314,6 +340,9 @@ export const createOrderService = async (
   return apiResponse("Order created successfully", orderWithItems);
 };
 
+// =======================================================
+// UPDATE ORDER
+// =======================================================
 export const updateOrderService = async (
   userId: string,
   storeId: string,
@@ -326,19 +355,18 @@ export const updateOrderService = async (
     where: { id: orderId, storeId, isActive: true },
   });
 
-  if (!existingOrder) {
+  if (!existingOrder)
     throw new ApiError("Order not found", StatusCodes.NOT_FOUND);
-  }
 
-  const result = await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const order = await tx.order.update({
       where: { id: orderId },
       data: {
-        status: data.status || existingOrder.status,
-        customerName: data.customerName || existingOrder.customerName,
+        status: data.status ?? existingOrder.status,
+        customerName: data.customerName ?? existingOrder.customerName,
         customerEmail: data.customerEmail ?? existingOrder.customerEmail,
-        customerPhone: data.customerPhone || existingOrder.customerPhone,
-        notes: data.notes || existingOrder.notes,
+        customerPhone: data.customerPhone ?? existingOrder.customerPhone,
+        notes: data.notes ?? existingOrder.notes,
         shippingAddress: data.shippingAddress
           ? JSON.stringify(data.shippingAddress)
           : (existingOrder.shippingAddress as any) ?? undefined,
@@ -350,7 +378,7 @@ export const updateOrderService = async (
       userId,
       order.id,
       "update",
-      data.status || existingOrder.status,
+      order.status,
       "Order updated",
       ipAddress,
       userAgent,
@@ -360,9 +388,12 @@ export const updateOrderService = async (
     return order;
   });
 
-  return apiResponse("Order updated successfully", result);
+  return apiResponse("Order updated successfully", updated);
 };
 
+// =======================================================
+// DELETE ORDER
+// =======================================================
 export const deleteOrderService = async (
   userId: string,
   storeId: string,
@@ -371,34 +402,33 @@ export const deleteOrderService = async (
   ipAddress: string,
   userAgent: string
 ) => {
-  const existingOrder = await prisma.order.findFirst({
+  const order = await prisma.order.findFirst({
     where: { id: orderId, storeId, isActive: true },
     include: { items: true },
   });
 
-  if (!existingOrder) {
-    throw new ApiError("Order not found", StatusCodes.NOT_FOUND);
-  }
+  if (!order) throw new ApiError("Order not found", StatusCodes.NOT_FOUND);
 
   await prisma.$transaction(async (tx) => {
-    // Release reserved inventory
-    for (const item of existingOrder.items) {
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          productId_storeId: {
-            productId: item.productId,
-            storeId,
-          },
-        },
-      });
+    const productIds = order.items.map((i) => i.productId);
 
-      if (inventory) {
-        await tx.inventory.update({
-          where: { id: inventory.id },
-          data: { reserved: { decrement: item.quantity } },
-        });
-      }
-    }
+    const inventoryRecords = await tx.inventory.findMany({
+      where: { productId: { in: productIds }, storeId },
+    });
+
+    const inventoryMap = new Map(inventoryRecords.map((i) => [i.productId, i]));
+
+    const updates = order.items.map((item) => {
+      const inv = inventoryMap.get(item.productId);
+      if (!inv) return null;
+
+      return tx.inventory.update({
+        where: { id: inv.id },
+        data: { reserved: { decrement: item.quantity } },
+      });
+    });
+
+    await Promise.all(updates.filter(Boolean));
 
     await tx.order.update({
       where: { id: orderId },
@@ -412,13 +442,13 @@ export const deleteOrderService = async (
     await logOrderHistory(
       tx,
       userId,
-      existingOrder.id,
+      orderId,
       "delete",
       "CANCELLED",
       reason,
       ipAddress,
       userAgent,
-      existingOrder
+      order
     );
   });
 

@@ -1,0 +1,46 @@
+model Cart {
+  id        String   @id @default(cuid())
+  storeId   String
+  customerEmail String?
+  customerPhone String?
+  customerName String?
+  items     CartItem[]
+  status    CartStatus @default(ACTIVE)
+  abandonedAt DateTime?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@map("carts")
+  @@index([id, storeId])
+  @@index([status, storeId])
+  @@index([abandonedAt])
+}
+
+enum CartStatus {
+  ACTIVE
+  ABANDONED
+  CONVERTED
+  EXPIRED
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("cart_items")
+  @@index([cartId])
+  @@index([productId])
+}
+

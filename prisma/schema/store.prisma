@@ -27,6 +27,7 @@ model Store {
   newsletterSubscribers NewsletterSubscriber[]
   expenses       Expense[]
   invites        Invite[]
+  carts          Cart[]
   
   @@map("store")
   @@unique([name, organizationId])
@@ -91,6 +92,7 @@ model Product {
   history ProductHistory[]
   inventory Inventory[] @relation("ProductInventory")
   orderItems OrderItem[]
+  cartItems  CartItem[]
   @@map("products")
   @@unique([storeId, name])
   @@unique([storeId, sku])
