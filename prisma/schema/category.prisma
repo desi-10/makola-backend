@@ -1,0 +1,39 @@
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  storeId     String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  store    Store             @relation(fields: [storeId], references: [id])
+  products Product[]
+  history  CategoryHistory[]
+
+  @@unique([storeId, name])
+  @@index([id, storeId])
+  @@index([id, storeId, isActive])
+  @@map("categories")
+}
+
+model CategoryHistory {
+  id         String    @id @default(cuid())
+  categoryId String
+  userId     String
+  action     String
+  reason     String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  meta       Json?
+
+  category Category @relation(fields: [categoryId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@map("category_history")
+}

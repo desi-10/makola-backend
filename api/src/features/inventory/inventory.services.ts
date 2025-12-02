@@ -6,6 +6,7 @@ import {
   CreateInventorySchemaType,
   UpdateInventorySchemaType,
   AdjustInventorySchemaType,
+  RestockInventorySchemaType,
 } from "./inventory.validators.js";
 import { logInventoryHistory } from "./inventory.utils.js";
 
@@ -171,6 +172,9 @@ export const adjustInventoryService = async (
     throw new ApiError("Insufficient inventory", StatusCodes.BAD_REQUEST);
   }
 
+  // Use "restock" action if quantity is positive, otherwise "adjust"
+  const action = data.quantity > 0 ? "restock" : "adjust";
+
   const result = await prisma.$transaction(async (tx) => {
     const inventory = await tx.inventory.update({
       where: { id: inventoryId },
@@ -181,11 +185,12 @@ export const adjustInventoryService = async (
       tx,
       userId,
       inventory.id,
-      "adjust",
+      action,
       data.quantity,
       previousQuantity,
       newQuantity,
-      data.reason || "Inventory adjusted",
+      data.reason ||
+        (action === "restock" ? "Inventory restocked" : "Inventory adjusted"),
       ipAddress,
       userAgent,
       inventory
@@ -195,6 +200,51 @@ export const adjustInventoryService = async (
   });
 
   return apiResponse("Inventory adjusted successfully", result);
+};
+
+export const restockInventoryService = async (
+  userId: string,
+  storeId: string,
+  inventoryId: string,
+  data: RestockInventorySchemaType,
+  ipAddress: string,
+  userAgent: string
+) => {
+  const existingInventory = await prisma.inventory.findFirst({
+    where: { id: inventoryId, storeId, isActive: true },
+  });
+
+  if (!existingInventory) {
+    throw new ApiError("Inventory not found", StatusCodes.NOT_FOUND);
+  }
+
+  const previousQuantity = existingInventory.quantity;
+  const newQuantity = previousQuantity + data.quantity;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const inventory = await tx.inventory.update({
+      where: { id: inventoryId },
+      data: { quantity: newQuantity },
+    });
+
+    await logInventoryHistory(
+      tx,
+      userId,
+      inventory.id,
+      "restock",
+      data.quantity,
+      previousQuantity,
+      newQuantity,
+      data.reason || "Inventory restocked",
+      ipAddress,
+      userAgent,
+      inventory
+    );
+
+    return inventory;
+  });
+
+  return apiResponse("Inventory restocked successfully", result);
 };
 
 export const deleteInventoryService = async (

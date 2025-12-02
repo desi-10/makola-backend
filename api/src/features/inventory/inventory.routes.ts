@@ -6,6 +6,7 @@ import {
   CreateInventorySchema,
   UpdateInventorySchema,
   AdjustInventorySchema,
+  RestockInventorySchema,
   InventoryParamsIdSchema,
 } from "./inventory.validators.js";
 import { validateParams } from "../../middlewares/params.middleware.js";
@@ -46,6 +47,14 @@ router
     validateParams(InventoryParamsIdSchema),
     validateSchema(AdjustInventorySchema),
     inventoryControllers.adjustInventory
+  );
+
+router
+  .route("/:inventoryId/restock")
+  .post(
+    validateParams(InventoryParamsIdSchema),
+    validateSchema(RestockInventorySchema),
+    inventoryControllers.restockInventory
   );
 
 export default router;

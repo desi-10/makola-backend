@@ -1,30 +1,30 @@
 model Discount {
-  id            String         @id @default(cuid())
-  name          String
-  description   String?
-  storeId       String
-  type          DiscountType
-  value         Decimal        @db.Decimal(10, 2) // Percentage or fixed amount
-  minPurchase   Decimal?       @db.Decimal(10, 2) // Minimum purchase amount
-  maxDiscount   Decimal?       @db.Decimal(10, 2) // Maximum discount amount
-  applicableTo  DiscountApplicableTo @default(ALL)
-  productIds    String[] // If applicableTo is SPECIFIC_PRODUCTS
-  categoryIds   String[] // If applicableTo is SPECIFIC_CATEGORIES
-  startDate     DateTime?
-  endDate       DateTime?
-  isActive      Boolean         @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
+  id           String               @id @default(cuid())
+  name         String
+  description  String?
+  storeId      String
+  type         DiscountType
+  value        Decimal              @db.Decimal(10, 2) // Percentage or fixed amount
+  minPurchase  Decimal?             @db.Decimal(10, 2) // Minimum purchase amount
+  maxDiscount  Decimal?             @db.Decimal(10, 2) // Maximum discount amount
+  applicableTo DiscountApplicableTo @default(ALL)
+  productIds   String[] // If applicableTo is SPECIFIC_PRODUCTS
+  categoryIds  String[] // If applicableTo is SPECIFIC_CATEGORIES
+  startDate    DateTime?
+  endDate      DateTime?
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  deletedAt    DateTime?
 
-  store   Store          @relation(fields: [storeId], references: [id])
+  store   Store             @relation(fields: [storeId], references: [id])
   history DiscountHistory[]
 
-  @@map("discounts")
   @@unique([name, storeId])
   @@index([id, storeId])
   @@index([id, storeId, isActive])
   @@index([startDate, endDate])
+  @@map("discounts")
 }
 
 enum DiscountType {
@@ -39,22 +39,21 @@ enum DiscountApplicableTo {
 }
 
 model DiscountHistory {
-  id        String   @id @default(cuid())
+  id         String    @id @default(cuid())
   discountId String
-  userId    String
-  action    String
-  reason    String?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  meta      Json?
+  userId     String
+  action     String
+  reason     String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  meta       Json?
 
   discount Discount @relation(fields: [discountId], references: [id])
   user     User     @relation(fields: [userId], references: [id])
 
-  @@map("discount_history")
   @@index([discountId, createdAt])
+  @@map("discount_history")
 }
-

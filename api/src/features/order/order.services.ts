@@ -359,10 +359,13 @@ export const updateOrderService = async (
     throw new ApiError("Order not found", StatusCodes.NOT_FOUND);
 
   const updated = await prisma.$transaction(async (tx) => {
+    const newStatus = data.status ?? existingOrder.status;
+    const previousStatus = existingOrder.status;
+
     const order = await tx.order.update({
       where: { id: orderId },
       data: {
-        status: data.status ?? existingOrder.status,
+        status: newStatus,
         customerName: data.customerName ?? existingOrder.customerName,
         customerEmail: data.customerEmail ?? existingOrder.customerEmail,
         customerPhone: data.customerPhone ?? existingOrder.customerPhone,
@@ -371,7 +374,114 @@ export const updateOrderService = async (
           ? JSON.stringify(data.shippingAddress)
           : (existingOrder.shippingAddress as any) ?? undefined,
       },
+      include: { items: true },
     });
+
+    // Handle inventory updates based on status changes
+    if (previousStatus !== newStatus) {
+      const productIds = order.items.map((i) => i.productId);
+      const inventoryRecords = await tx.inventory.findMany({
+        where: { productId: { in: productIds }, storeId },
+      });
+      const inventoryMap = new Map(
+        inventoryRecords.map((i) => [i.productId, i])
+      );
+
+      // Statuses that indicate items were purchased (confirmed/delivered)
+      const purchaseStatuses = [
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "DELIVERED",
+      ];
+      // Statuses that indicate order was cancelled/refunded
+      const cancelStatuses = ["CANCELLED", "REFUNDED"];
+
+      // If moving from PENDING to a purchase status, decrement inventory and increment totalPurchased
+      if (
+        previousStatus === "PENDING" &&
+        purchaseStatuses.includes(newStatus)
+      ) {
+        for (const item of order.items) {
+          const inv = inventoryMap.get(item.productId);
+          if (inv) {
+            await tx.inventory.update({
+              where: { id: inv.id },
+              data: {
+                quantity: { decrement: item.quantity },
+                reserved: { decrement: item.quantity },
+                totalPurchased: { increment: item.quantity },
+              },
+            });
+
+            // Log inventory history for sale
+            await tx.inventoryHistory.create({
+              data: {
+                inventoryId: inv.id,
+                userId,
+                action: "sale",
+                quantity: -item.quantity,
+                previousQuantity: inv.quantity,
+                newQuantity: inv.quantity - item.quantity,
+                reason: `Order ${order.orderNumber} - ${newStatus}`,
+                ipAddress,
+                userAgent,
+              },
+            });
+          }
+        }
+      }
+      // If moving from a purchase status to cancelled/refunded, reverse the purchase
+      else if (
+        purchaseStatuses.includes(previousStatus) &&
+        cancelStatuses.includes(newStatus)
+      ) {
+        for (const item of order.items) {
+          const inv = inventoryMap.get(item.productId);
+          if (inv) {
+            await tx.inventory.update({
+              where: { id: inv.id },
+              data: {
+                quantity: { increment: item.quantity },
+                totalPurchased: { decrement: item.quantity },
+              },
+            });
+
+            // Log inventory history for return/refund
+            await tx.inventoryHistory.create({
+              data: {
+                inventoryId: inv.id,
+                userId,
+                action: "return",
+                quantity: item.quantity,
+                previousQuantity: inv.quantity,
+                newQuantity: inv.quantity + item.quantity,
+                reason: `Order ${order.orderNumber} - ${newStatus}`,
+                ipAddress,
+                userAgent,
+              },
+            });
+          }
+        }
+      }
+      // If moving from PENDING to cancelled, just release reserved
+      else if (
+        previousStatus === "PENDING" &&
+        cancelStatuses.includes(newStatus)
+      ) {
+        for (const item of order.items) {
+          const inv = inventoryMap.get(item.productId);
+          if (inv) {
+            await tx.inventory.update({
+              where: { id: inv.id },
+              data: {
+                reserved: { decrement: item.quantity },
+              },
+            });
+          }
+        }
+      }
+    }
 
     await logOrderHistory(
       tx,

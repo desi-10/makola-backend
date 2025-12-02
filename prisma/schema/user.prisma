@@ -1,42 +1,43 @@
 model User {
-  id                   String                 @id @default(cuid())
-  name                 String
-  email                String                 @unique
-  password             String?
-  emailVerified        Boolean                @default(false)
-  image                String?
-  bio                  String?
-  isTwoFactorEnabled   Boolean                @default(false)
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
+  id                 String   @id @default(cuid())
+  name               String
+  email              String   @unique
+  password           String?
+  emailVerified      Boolean  @default(false)
+  image              String?
+  bio                String?
+  isTwoFactorEnabled Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  sessions             Session[]
-  accounts             Account[]
-  
+  sessions Session[]
+  accounts Account[]
+
   // Organizations the user OWNS (created)
-  organizations        Organization[]
+  organizations Organization[]
 
   // Organizations the user BELONGS TO (as a member)
-  organizationMembers  OrganizationMember[]
-  storeMembers         StoreMember[]
-  organizationHistories OrganizationHistory[]
-  storeHistories       StoreHistory[]
-  categoryHistories CategoryHistory[]
-  productHistories ProductHistory[]
-  inventoryHistories InventoryHistory[]
-  orderHistories OrderHistory[]
-  paymentHistories PaymentHistory[]
-  invoiceHistories InvoiceHistory[]
-  discountHistories DiscountHistory[]
-  couponHistories CouponHistory[]
-  campaignHistories CampaignHistory[]
-  flashSaleHistories FlashSaleHistory[]
-  newsletterHistories NewsletterHistory[]
-  expenseHistories ExpenseHistory[]
-  inviteHistories InviteHistory[]
+  organizationMembers       OrganizationMember[]
+  storeMembers              StoreMember[]
+  organizationHistories     OrganizationHistory[]
+  storeHistories            StoreHistory[]
+  categoryHistories         CategoryHistory[]
+  productHistories          ProductHistory[]
+  inventoryHistories        InventoryHistory[]
+  orderHistories            OrderHistory[]
+  paymentHistories          PaymentHistory[]
+  invoiceHistories          InvoiceHistory[]
+  discountHistories         DiscountHistory[]
+  couponHistories           CouponHistory[]
+  campaignHistories         CampaignHistory[]
+  flashSaleHistories        FlashSaleHistory[]
+  newsletterHistories       NewsletterHistory[]
+  expenseHistories          ExpenseHistory[]
+  inviteHistories           InviteHistory[]
+  variantInventoryHistories VariantInventoryHistory[]
+
   @@map("user")
 }
-
 
 model Session {
   id        String   @id @default(cuid())

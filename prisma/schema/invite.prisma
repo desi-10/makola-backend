@@ -1,29 +1,29 @@
 model Invite {
-  id            String        @id @default(cuid())
-  email         String
-  storeId       String?
+  id             String       @id @default(cuid())
+  email          String
+  storeId        String?
   organizationId String?
-  roleId        String? // Store role or organization role
-  token         String        @unique
-  status        InviteStatus  @default(PENDING)
-  invitedBy     String // User ID
-  expiresAt     DateTime
-  acceptedAt    DateTime?
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
+  roleId         String? // Store role or organization role
+  token          String       @unique
+  status         InviteStatus @default(PENDING)
+  invitedBy      String // User ID
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
 
-  store        Store?        @relation(fields: [storeId], references: [id])
-  organization Organization? @relation(fields: [organizationId], references: [id])
+  store        Store?          @relation(fields: [storeId], references: [id])
+  organization Organization?   @relation(fields: [organizationId], references: [id])
   history      InviteHistory[]
 
-  @@map("invites")
   @@index([token])
   @@index([email, storeId])
   @@index([email, organizationId])
   @@index([status])
   @@index([expiresAt])
+  @@map("invites")
 }
 
 enum InviteStatus {
@@ -34,7 +34,7 @@ enum InviteStatus {
 }
 
 model InviteHistory {
-  id        String       @id @default(cuid())
+  id        String        @id @default(cuid())
   inviteId  String
   userId    String
   action    String
@@ -42,7 +42,7 @@ model InviteHistory {
   reason    String?
   ipAddress String?
   userAgent String?
-  createdAt DateTime     @default(now())
+  createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   deletedAt DateTime?
   meta      Json?
@@ -50,7 +50,6 @@ model InviteHistory {
   invite Invite @relation(fields: [inviteId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
 
-  @@map("invite_history")
   @@index([inviteId, createdAt])
+  @@map("invite_history")
 }
-

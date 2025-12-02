@@ -35,6 +35,14 @@ export const AdjustInventorySchema = z.object({
   reason: z.string().trim().optional(),
 });
 
+export const RestockInventorySchema = z.object({
+  quantity: z.coerce
+    .number()
+    .int()
+    .positive({ message: "Restock quantity must be > 0" }),
+  reason: z.string().trim().optional(),
+});
+
 export const InventoryParamsIdSchema = z.object({
   inventoryId: z.cuid().min(1, { message: "Invalid inventory ID" }),
 });
@@ -42,6 +50,7 @@ export const InventoryParamsIdSchema = z.object({
 export type CreateInventorySchemaType = z.infer<typeof CreateInventorySchema>;
 export type UpdateInventorySchemaType = z.infer<typeof UpdateInventorySchema>;
 export type AdjustInventorySchemaType = z.infer<typeof AdjustInventorySchema>;
+export type RestockInventorySchemaType = z.infer<typeof RestockInventorySchema>;
 export type InventoryParamsIdSchemaType = z.infer<
   typeof InventoryParamsIdSchema
 >;

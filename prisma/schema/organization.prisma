@@ -1,96 +1,96 @@
 model Organization {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   description String?
   image       String?
   userId      String
-  slug        String   
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  slug        String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  user        User      @relation(fields: [userId], references: [id])
-  stores      Store[]
-  members     OrganizationMember[]
-  roles       OrganizationRole[]
-  history     OrganizationHistory[]
-  invites     Invite[]
+  user    User                  @relation(fields: [userId], references: [id])
+  stores  Store[]
+  members OrganizationMember[]
+  roles   OrganizationRole[]
+  history OrganizationHistory[]
+  invites Invite[]
 
-  @@map("organization")
   @@unique([name, userId])
   @@unique([slug, userId])
-  @@index([id,userId])
-  @@unique([id,userId])
+  @@unique([id, userId])
+  @@index([id, userId])
+  @@map("organization")
 }
 
 model OrganizationMember {
-  id              String   @id @default(cuid())
-  organizationId  String
-  userId          String
-  roleId          String?  // more scalable than storing plain string
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  roleId         String? // more scalable than storing plain string
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  user            User         @relation(fields: [userId], references: [id])
-  role            OrganizationRole? @relation(fields: [roleId], references: [id])
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  user         User              @relation(fields: [userId], references: [id])
+  role         OrganizationRole? @relation(fields: [roleId], references: [id])
 
-  @@map("organization_members")
   @@unique([organizationId, userId]) // one member per org
+  @@map("organization_members")
 }
 
 model OrganizationRole {
-  id              String   @id @default(cuid())
-  organizationId  String
-  name            String
-  description     String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  permissions     OrganizationRolePermission[]
-  members         OrganizationMember[]
+  organization Organization                 @relation(fields: [organizationId], references: [id])
+  permissions  OrganizationRolePermission[]
+  members      OrganizationMember[]
 
-  @@map("organization_roles")
   @@unique([organizationId, name]) // role names must be unique per org
+  @@map("organization_roles")
 }
 
 model OrganizationRolePermission {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   organizationRoleId String
   permissionId       String
-  isActive           Boolean @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
 
   role OrganizationRole @relation(fields: [organizationRoleId], references: [id])
 
-  @@map("organization_role_permissions")
   @@unique([organizationRoleId, permissionId]) // prevent duplicates
+  @@map("organization_role_permissions")
 }
 
 model OrganizationHistory {
-  id              String   @id @default(cuid())
-  organizationId  String
-  doerUserId      String
-  action          String
-  description     String?
-  reason          String?
-  ipAddress       String?
-  userAgent       String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
-  meta            Json?
+  id             String    @id @default(cuid())
+  organizationId String
+  doerUserId     String
+  action         String
+  description    String?
+  reason         String?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  meta           Json?
 
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  doer            User         @relation(fields: [doerUserId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  doer         User         @relation(fields: [doerUserId], references: [id])
 
   @@map("organization_history")
 }

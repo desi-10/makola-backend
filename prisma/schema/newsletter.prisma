@@ -1,28 +1,28 @@
 model Newsletter {
-  id          String           @id @default(cuid())
-  name        String
-  subject     String
-  content     String // HTML content
-  storeId     String
-  status      NewsletterStatus @default(DRAFT)
-  scheduledAt DateTime?
-  sentAt      DateTime?
-  recipientCount Int          @default(0)
-  openedCount    Int          @default(0)
-  clickedCount   Int          @default(0)
-  isActive    Boolean         @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  deletedAt   DateTime?
+  id             String           @id @default(cuid())
+  name           String
+  subject        String
+  content        String // HTML content
+  storeId        String
+  status         NewsletterStatus @default(DRAFT)
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  recipientCount Int              @default(0)
+  openedCount    Int              @default(0)
+  clickedCount   Int              @default(0)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
 
-  store      Store           @relation(fields: [storeId], references: [id])
-  history    NewsletterHistory[]
+  store   Store               @relation(fields: [storeId], references: [id])
+  history NewsletterHistory[]
 
-  @@map("newsletters")
   @@unique([name, storeId])
   @@index([id, storeId])
   @@index([id, storeId, isActive])
   @@index([status, storeId])
+  @@map("newsletters")
 }
 
 enum NewsletterStatus {
@@ -34,43 +34,42 @@ enum NewsletterStatus {
 }
 
 model NewsletterSubscriber {
-  id          String   @id @default(cuid())
-  email       String
-  storeId     String
-  name        String?
-  isActive    Boolean  @default(true)
-  subscribedAt DateTime @default(now())
+  id             String    @id @default(cuid())
+  email          String
+  storeId        String
+  name           String?
+  isActive       Boolean   @default(true)
+  subscribedAt   DateTime  @default(now())
   unsubscribedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
-  store      Store        @relation(fields: [storeId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
 
-  @@map("newsletter_subscribers")
   @@unique([email, storeId])
   @@index([id, storeId])
   @@index([id, storeId, isActive])
+  @@map("newsletter_subscribers")
 }
 
 model NewsletterHistory {
-  id        String           @id @default(cuid())
+  id           String            @id @default(cuid())
   newsletterId String
-  userId    String
-  action    String
-  status    NewsletterStatus?
-  reason    String?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  deletedAt DateTime?
-  meta      Json?
+  userId       String
+  action       String
+  status       NewsletterStatus?
+  reason       String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  deletedAt    DateTime?
+  meta         Json?
 
   newsletter Newsletter @relation(fields: [newsletterId], references: [id])
   user       User       @relation(fields: [userId], references: [id])
 
-  @@map("newsletter_history")
   @@index([newsletterId, createdAt])
+  @@map("newsletter_history")
 }
-

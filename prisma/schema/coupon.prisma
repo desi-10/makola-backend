@@ -1,53 +1,52 @@
 model Coupon {
-  id            String        @id @default(cuid())
-  code          String        @unique // Coupon code
-  name          String
-  description   String?
-  storeId       String
-  type          DiscountType
-  value         Decimal       @db.Decimal(10, 2)
-  minPurchase   Decimal?     @db.Decimal(10, 2)
-  maxDiscount   Decimal?     @db.Decimal(10, 2)
-  maxUses       Int? // Maximum number of times coupon can be used
-  usedCount     Int           @default(0)
-  applicableTo  DiscountApplicableTo @default(ALL)
-  productIds    String[]
-  categoryIds   String[]
-  startDate     DateTime?
-  endDate       DateTime?
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
+  id           String               @id @default(cuid())
+  code         String               @unique // Coupon code
+  name         String
+  description  String?
+  storeId      String
+  type         DiscountType
+  value        Decimal              @db.Decimal(10, 2)
+  minPurchase  Decimal?             @db.Decimal(10, 2)
+  maxDiscount  Decimal?             @db.Decimal(10, 2)
+  maxUses      Int? // Maximum number of times coupon can be used
+  usedCount    Int                  @default(0)
+  applicableTo DiscountApplicableTo @default(ALL)
+  productIds   String[]
+  categoryIds  String[]
+  startDate    DateTime?
+  endDate      DateTime?
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  deletedAt    DateTime?
 
-  store   Store         @relation(fields: [storeId], references: [id])
+  store   Store           @relation(fields: [storeId], references: [id])
   orders  Order[]
   history CouponHistory[]
 
-  @@map("coupons")
   @@index([code])
   @@index([id, storeId])
   @@index([id, storeId, isActive])
   @@index([startDate, endDate])
+  @@map("coupons")
 }
 
 model CouponHistory {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   couponId  String
   userId    String
   action    String
   reason    String?
   ipAddress String?
   userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   meta      Json?
 
   coupon Coupon @relation(fields: [couponId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
 
-  @@map("coupon_history")
   @@index([couponId, createdAt])
+  @@map("coupon_history")
 }
-

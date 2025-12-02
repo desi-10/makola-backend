@@ -1,169 +1,91 @@
 model Store {
-  id             String         @id @default(cuid())
-  name           String
-  description    String?
-  image          String?
-  organizationId String
-  categories     Category[]
-  products       Product[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  deletedAt      DateTime?
-  isActive       Boolean        @default(true)
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  members        StoreMember[]
-  roles          StoreRole[]
-  settings       StoreSetting[]
-  history        StoreHistory[]
-  inventory      Inventory[] @relation("StoreInventory")
-  orders         Order[]
-  payments       Payment[]
-  invoices       Invoice[]
-  discounts      Discount[]
-  coupons        Coupon[]
-  campaigns      Campaign[]
-  flashSales     FlashSale[]
-  newsletters    Newsletter[]
+  id                    String                 @id @default(cuid())
+  name                  String
+  description           String?
+  image                 String?
+  organizationId        String
+  categories            Category[]
+  products              Product[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  deletedAt             DateTime?
+  isActive              Boolean                @default(true)
+  organization          Organization           @relation(fields: [organizationId], references: [id])
+  members               StoreMember[]
+  roles                 StoreRole[]
+  settings              StoreSetting[]
+  history               StoreHistory[]
+  inventory             Inventory[]            @relation("StoreInventory")
+  orders                Order[]
+  payments              Payment[]
+  invoices              Invoice[]
+  discounts             Discount[]
+  coupons               Coupon[]
+  campaigns             Campaign[]
+  flashSales            FlashSale[]
+  newsletters           Newsletter[]
   newsletterSubscribers NewsletterSubscriber[]
-  expenses       Expense[]
-  invites        Invite[]
-  carts          Cart[]
-  
-  @@map("store")
+  expenses              Expense[]
+  invites               Invite[]
+  carts                 Cart[]
+  brands                Brand[]
+  variantInventories    VariantInventory[]     @relation("StoreVariantInventory")
+  productTags           ProductTag[]
+
   @@unique([name, organizationId])
   @@index([id, organizationId])
   @@index([id, organizationId, isActive])
-}
-
-model Category {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  image       String?
-  storeId     String
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-
-  store    Store     @relation(fields: [storeId], references: [id])
-  products Product[]
-  history CategoryHistory[]
-  @@map("categories")
-  @@unique([storeId, name])
-  @@index([id, storeId])
-  @@index([id, storeId, isActive])
-}
-
-model CategoryHistory {
-  id        String   @id @default(cuid())
-  categoryId String
-  userId String
-  action String
-  reason String?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  meta Json?
-
-  category Category @relation(fields: [categoryId], references: [id])
-  user User @relation(fields: [userId], references: [id])
-  @@map("category_history")
-}
-
-model Product {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  image       String?
-  price       Decimal   @db.Decimal(10, 2)
-  sku         String?
-  storeId     String
-  categoryId  String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-
-  store    Store     @relation(fields: [storeId], references: [id])
-  category Category? @relation(fields: [categoryId], references: [id])
-  history ProductHistory[]
-  inventory Inventory[] @relation("ProductInventory")
-  orderItems OrderItem[]
-  cartItems  CartItem[]
-  @@map("products")
-  @@unique([storeId, name])
-  @@unique([storeId, sku])
-  @@index([id, storeId])
-  @@index([id, storeId, isActive])
-}
-
-model ProductHistory {
-  id        String   @id @default(cuid())
-  productId String
-  userId String
-  action String
-  reason String?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  meta Json?
-
-  product Product @relation(fields: [productId], references: [id])
-  user User @relation(fields: [userId], references: [id])
-  @@map("product_history")
+  @@map("store")
 }
 
 model StoreMember {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   storeId   String
   roleId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  isActive  Boolean  @default(true)
-  user  User  @relation(fields: [userId], references: [id])
-  store Store @relation(fields: [storeId], references: [id])
-  role    StoreRole @relation(fields: [roleId], references: [id])
-  @@map("store_members")
+  isActive  Boolean   @default(true)
+  user      User      @relation(fields: [userId], references: [id])
+  store     Store     @relation(fields: [storeId], references: [id])
+  role      StoreRole @relation(fields: [roleId], references: [id])
+
   @@unique([userId, storeId]) // prevent duplicate membership
   @@index([id, userId, storeId])
   @@index([id, userId, storeId, isActive])
+  @@map("store_members")
 }
 
 model StoreRole {
-  id          String                 @id @default(cuid())
-  name        String
-  description String?
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  storeId     String
-  deletedAt   DateTime?
-  isActive    Boolean  @default(true)
-  store             Store                  @relation(fields: [storeId], references: [id])
-  rolePermissions   StoreRolePermission[]
+  id              String                @id @default(cuid())
+  name            String
+  description     String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  storeId         String
+  deletedAt       DateTime?
+  isActive        Boolean               @default(true)
+  store           Store                 @relation(fields: [storeId], references: [id])
+  rolePermissions StoreRolePermission[]
   members         StoreMember[]
-  @@map("store_roles")
+
   @@unique([name, storeId])
   @@index([id, storeId])
   @@index([id, storeId, isActive])
+  @@map("store_roles")
 }
 
 model StoreRolePermission {
-  id           String       @id @default(cuid())
+  id           String     @id @default(cuid())
   roleId       String
   permissionId String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   deletedAt    DateTime?
-  isActive     Boolean  @default(true)
-  role       StoreRole  @relation(fields: [roleId], references: [id])
-  permission Permission @relation(fields: [permissionId], references: [id])
+  isActive     Boolean    @default(true)
+  role         StoreRole  @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
 
   @@map("store_role_permissions")
 }
@@ -181,33 +103,33 @@ model StoreSetting {
 
 // Assumed Permission model
 model Permission {
-  id          String                 @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   storeRolePermissions StoreRolePermission[]
 
-  @@map("permissions") 
+  @@map("permissions")
 }
 
-
 model StoreHistory {
-  id        String   @id @default(cuid())
-  storeId  String
+  id          String    @id @default(cuid())
+  storeId     String
   userId      String
-  action          String
-  description     String?
-  reason          String?
-  ipAddress       String?
-  userAgent       String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
-  meta            Json?
+  action      String
+  description String?
+  reason      String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  meta        Json?
 
-  store    Store @relation(fields: [storeId], references: [id])
-  user     User  @relation(fields: [userId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
   @@map("store_history")
 }

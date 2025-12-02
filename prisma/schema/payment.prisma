@@ -14,15 +14,15 @@ model Payment {
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
 
-  order Order @relation(fields: [orderId], references: [id])
-  store Store @relation(fields: [storeId], references: [id])
+  order   Order            @relation(fields: [orderId], references: [id])
+  store   Store            @relation(fields: [storeId], references: [id])
   history PaymentHistory[]
 
-  @@map("payments")
   @@index([id, storeId])
   @@index([orderId])
   @@index([status, storeId])
   @@index([transactionId])
+  @@map("payments")
 }
 
 enum PaymentMethod {
@@ -45,23 +45,22 @@ enum PaymentStatus {
 }
 
 model PaymentHistory {
-  id            String        @id @default(cuid())
-  paymentId     String
-  userId        String
-  action        String
-  status        PaymentStatus?
-  reason        String?
-  ipAddress     String?
-  userAgent     String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
-  meta          Json?
+  id        String         @id @default(cuid())
+  paymentId String
+  userId    String
+  action    String
+  status    PaymentStatus?
+  reason    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+  meta      Json?
 
   payment Payment @relation(fields: [paymentId], references: [id])
   user    User    @relation(fields: [userId], references: [id])
 
-  @@map("payment_history")
   @@index([paymentId, createdAt])
+  @@map("payment_history")
 }
-

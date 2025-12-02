@@ -61,6 +61,21 @@ export const adjustInventory = async (req: Request, res: Response) => {
   return res.status(StatusCodes.OK).json(result);
 };
 
+export const restockInventory = async (req: Request, res: Response) => {
+  const userId = (req as any).userId as string;
+  const storeId = (req as any).storeId as string;
+  const inventoryId = req.params.inventoryId as string;
+  const result = await inventoryServices.restockInventoryService(
+    userId,
+    storeId,
+    inventoryId,
+    req.body,
+    req.ip as string,
+    (req.headers["user-agent"] as string) || ""
+  );
+  return res.status(StatusCodes.OK).json(result);
+};
+
 export const deleteInventory = async (req: Request, res: Response) => {
   const userId = (req as any).userId as string;
   const storeId = (req as any).storeId as string;

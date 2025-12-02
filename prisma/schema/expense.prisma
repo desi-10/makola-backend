@@ -1,30 +1,30 @@
 model Expense {
-  id            String        @id @default(cuid())
-  title         String
-  description   String?
-  storeId       String
-  category      ExpenseCategory
-  amount        Decimal       @db.Decimal(10, 2)
-  date          DateTime
-  receiptUrl    String? // Receipt image URL
-  paidBy        String? // User ID who paid
-  approvedBy    String? // User ID who approved
-  status        ExpenseStatus  @default(PENDING)
-  tags          String[] // For categorization
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  storeId     String
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(10, 2)
+  date        DateTime
+  receiptUrl  String? // Receipt image URL
+  paidBy      String? // User ID who paid
+  approvedBy  String? // User ID who approved
+  status      ExpenseStatus   @default(PENDING)
+  tags        String[] // For categorization
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
 
-  store   Store         @relation(fields: [storeId], references: [id])
+  store   Store            @relation(fields: [storeId], references: [id])
   history ExpenseHistory[]
 
-  @@map("expenses")
   @@index([id, storeId])
   @@index([id, storeId, isActive])
   @@index([category, storeId])
   @@index([date, storeId])
   @@index([status, storeId])
+  @@map("expenses")
 }
 
 enum ExpenseCategory {
@@ -49,7 +49,7 @@ enum ExpenseStatus {
 }
 
 model ExpenseHistory {
-  id        String        @id @default(cuid())
+  id        String         @id @default(cuid())
   expenseId String
   userId    String
   action    String
@@ -57,7 +57,7 @@ model ExpenseHistory {
   reason    String?
   ipAddress String?
   userAgent String?
-  createdAt DateTime      @default(now())
+  createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   deletedAt DateTime?
   meta      Json?
@@ -65,7 +65,6 @@ model ExpenseHistory {
   expense Expense @relation(fields: [expenseId], references: [id])
   user    User    @relation(fields: [userId], references: [id])
 
-  @@map("expense_history")
   @@index([expenseId, createdAt])
+  @@map("expense_history")
 }
-
