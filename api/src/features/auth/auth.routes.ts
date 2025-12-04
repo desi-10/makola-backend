@@ -17,8 +17,8 @@ router.post("/sign-in", validateSchema(SignInSchema), authController.signIn);
 router.post("/sign-up", validateSchema(SignUpSchema), authController.signUp);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/sign-out", authenticate, authController.signOut);
-router.get("/get-session", authenticate, authController.getSession);
-router.get("/get-sessions", authenticate, authController.getSessions);
+router.get("/get-session", authController.getSession);
+router.get("/get-sessions", authController.getSessions);
 router.post("/revoke-sessions", authenticate, authController.revokeSessions);
 router.post(
   "/forgot-password",

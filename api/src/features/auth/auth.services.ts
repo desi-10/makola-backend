@@ -180,12 +180,9 @@ export const signOutService = async (userId: string, refreshToken: string) => {
   return apiResponse("Sign out successful", null);
 };
 
-export const getSessionService = async (
-  userId: string,
-  refreshToken: string
-) => {
+export const getSessionService = async (refreshToken: string) => {
   const session = await prisma.session.findFirst({
-    where: { userId, token: hashToken(refreshToken) },
+    where: { token: hashToken(refreshToken) },
     include: {
       user: {
         select: {

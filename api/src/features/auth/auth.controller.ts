@@ -88,9 +88,9 @@ export const signOut = async (req: Request, res: Response) => {
 };
 
 export const getSession = async (req: Request, res: Response) => {
-  const userId = (req as any).userId as string;
+  // const userId = (req as any).userId as string;
   const refreshToken = req.cookies.refresh_token;
-  const result = await authServices.getSessionService(userId, refreshToken);
+  const result = await authServices.getSessionService(refreshToken);
   return res.status(StatusCodes.OK).json(result);
 };
 
@@ -165,9 +165,7 @@ export const signInWithGoogle = async (req: Request, res: Response) => {
   setRefreshToken(res, result.refreshToken);
 
   //redirect to frontend with access token and session id
-  return res.redirect(
-    `${env.FRONTEND_URL}/auth/google/callback?accessToken=${result.accessToken}&sessionId=${result.session.id}&userId=${result.user.id}`
-  );
+  return res.redirect(`${process.env.FRONTEND_URL}/auth/google/callback`);
 };
 
 export const refreshGoogleAccessToken = async (req: Request, res: Response) => {
