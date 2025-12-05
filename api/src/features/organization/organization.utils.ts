@@ -1,6 +1,7 @@
-import prisma from "../../utils/db.js";
+import { Prisma } from "@prisma/client";
 
 export const logOrganizationHistory = async (
+  tx: Prisma.TransactionClient,
   doerUserId: string,
   organizationId: string,
   action: string,
@@ -9,7 +10,7 @@ export const logOrganizationHistory = async (
   userAgent: string,
   meta?: Record<string, any>
 ) => {
-  await prisma.organizationHistory.create({
+  await tx.organizationHistory.create({
     data: {
       doerUserId,
       organizationId,

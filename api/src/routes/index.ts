@@ -21,10 +21,12 @@ import memberRoutes from "../features/member/member.routes.js";
 import roleRoutes from "../features/role/role.routes.js";
 import analyticsRoutes from "../features/analytics/analytics.routes.js";
 import dashboardRoutes from "../features/dashboard/dashboard.routes.js";
+import onboardingRoutes from "../features/onboarding/onboarding.routes.js";
 
 const router = express.Router();
 
 router.use("/auth", authRoutes);
+router.use("/onboarding", onboardingRoutes);
 router.use("/users", userRoutes);
 router.use("/organizations", organizationRoutes);
 router.use("/organizations/:organizationId/stores", storeRoutes);
